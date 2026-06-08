@@ -1,0 +1,282 @@
+(yolov8) PS G:\gitOutside\YOLOv8\tests> python .\train_coco2017.py                                            
+New https://pypi.org/project/ultralytics/8.4.61 available  Update with 'pip install -U ultralytics'
+Ultralytics 8.4.60  Python-3.10.20 torch-2.5.1+cu118 CUDA:0 (NVIDIA GeForce RTX 3050 4GB Laptop GPU, 4096MiB)
+engine\trainer: agnostic_nms=False, amp=True, angle=1.0, augment=False, auto_augment=randaugment, batch=8, bgr=0.0, box=7.5, cache=False, cfg=None, classes=None, close_mosaic=10, cls=0.5, cls_pw=0.0, compile=False, conf=None, copy_paste=0.0, copy_paste_mode=flip, cos_lr=False, cutmix=0.0, data=..\cfg\coco128.yaml, degrees=0.0, deterministic=True, device=0, dfl=1.5, dnn=False, dropout=0.0, dynamic=False, embed=None, end2end=None, epochs=30, erasing=0.4, exist_ok=True, fliplr=0.5, flipud=0.0, format=torchscript, fraction=1.0, freeze=None, half=False, hsv_h=0.015, hsv_s=0.7, hsv_v=0.4, imgsz=640, int8=False, iou=0.7, keras=False, kobj=1.0, line_width=None, lr0=0.01, lrf=0.01, mask_ratio=4, max_det=300, mixup=0.0, mode=train, model=../model/yolov8n.pt, momentum=0.937, mosaic=1.0, multi_scale=0.0, name=coco128_exp, nbs=64, nms=False, opset=None, optimize=False, optimizer=auto, overlap_mask=True, patience=100, perspective=0.0, plots=True, pose=12.0, pretrained=True, profile=False, project=runs/train, rect=False, resume=False, retina_masks=False, rle=1.0, save=True, save_conf=False, save_crop=False, save_dir=G:\gitOutside\YOLOv8\tests\runs\detect\runs\train\coco128_exp, save_frames=False, save_json=False, save_period=-1, save_txt=False, scale=0.5, seed=0, shear=0.0, show=False, show_boxes=True, show_conf=True, show_labels=True, simplify=True, single_cls=False, source=None, split=val, stream_buffer=False, task=detect, time=None, tracker=botsort.yaml, translate=0.1, val=True, verbose=True, vid_stride=1, visualize=False, warmup_bias_lr=0.1, warmup_epochs=3.0, warmup_momentum=0.8, weight_decay=0.0005, workers=4, workspace=None
+
+                   from  n    params  module                                       arguments                     
+  0                  -1  1       464  ultralytics.nn.modules.conv.Conv             [3, 16, 3, 2]                 
+  1                  -1  1      4672  ultralytics.nn.modules.conv.Conv             [16, 32, 3, 2]                
+  2                  -1  1      7360  ultralytics.nn.modules.block.C2f             [32, 32, 1, True]             
+  3                  -1  1     18560  ultralytics.nn.modules.conv.Conv             [32, 64, 3, 2]                
+  4                  -1  2     49664  ultralytics.nn.modules.block.C2f             [64, 64, 2, True]             
+  5                  -1  1     73984  ultralytics.nn.modules.conv.Conv             [64, 128, 3, 2]               
+  6                  -1  2    197632  ultralytics.nn.modules.block.C2f             [128, 128, 2, True]           
+  7                  -1  1    295424  ultralytics.nn.modules.conv.Conv             [128, 256, 3, 2]              
+  8                  -1  1    460288  ultralytics.nn.modules.block.C2f             [256, 256, 1, True]           
+  9                  -1  1    164608  ultralytics.nn.modules.block.SPPF            [256, 256, 5]                 
+ 10                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']          
+ 11             [-1, 6]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 12                  -1  1    148224  ultralytics.nn.modules.block.C2f             [384, 128, 1]                 
+ 13                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']          
+ 14             [-1, 4]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 15                  -1  1     37248  ultralytics.nn.modules.block.C2f             [192, 64, 1]                  
+ 16                  -1  1     36992  ultralytics.nn.modules.conv.Conv             [64, 64, 3, 2]                
+ 17            [-1, 12]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 18                  -1  1    123648  ultralytics.nn.modules.block.C2f             [192, 128, 1]                 
+ 19                  -1  1    147712  ultralytics.nn.modules.conv.Conv             [128, 128, 3, 2]              
+ 20             [-1, 9]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 21                  -1  1    493056  ultralytics.nn.modules.block.C2f             [384, 256, 1]                 
+ 22        [15, 18, 21]  1    897664  ultralytics.nn.modules.head.Detect           [80, 16, None, [64, 128, 256]]
+Model summary: 130 layers, 3,157,200 parameters, 3,157,184 gradients, 8.9 GFLOPs
+
+Transferred 355/355 items from pretrained weights
+Freezing layer 'model.22.dfl.conv.weight'
+AMP: running Automatic Mixed Precision (AMP) checks...
+Downloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt to 'yolo26n.pt': 100% ━━━━━━━━━━━━ 5.3MB 1.3MB/s 4.2s
+AMP: checks passed 
+train: Fast image access  (ping: 0.00.0 ms, read: 519.0192.9 MB/s, size: 46.0 KB)
+train: Scanning G:\gitOutside\YOLOv8\examples\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128  0.0s
+val: Fast image access  (ping: 0.10.0 ms, read: 637.0305.2 MB/s, size: 56.4 KB)
+val: Scanning G:\gitOutside\YOLOv8\examples\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128  0.0s
+optimizer: 'optimizer=auto' found, ignoring 'lr0=0.01' and 'momentum=0.937' and determining best 'optimizer', 'lr0' and 'momentum' automatically... 
+optimizer: AdamW(lr=0.000119, momentum=0.9) with parameter groups 57 weight(decay=0.0), 64 weight(decay=0.0005), 63 bias(decay=0.0)
+Plotting labels to G:\gitOutside\YOLOv8\tests\runs\detect\runs\train\coco128_exp\labels.jpg... 
+Image sizes 640 train, 640 val
+Using 4 dataloader workers
+Logging results to G:\gitOutside\YOLOv8\tests\runs\detect\runs\train\coco128_exp
+Starting training for 30 epochs...
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+       1/30      1.33G      1.152      1.711      1.235          8        640: 100% ━━━━━━━━━━━━ 16/16 3.7it/s 4.4s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 6.2it/s 1.3s
+                   all        128        929      0.672       0.54      0.618      0.456
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+       2/30      1.84G      1.221      1.532      1.281          8        640: 100% ━━━━━━━━━━━━ 16/16 5.8it/s 2.8s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 6.5it/s 1.2s
+                   all        128        929      0.652      0.567      0.631      0.471
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+       3/30      1.84G      1.201      1.489       1.27          8        640: 100% ━━━━━━━━━━━━ 16/16 5.8it/s 2.7s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 6.6it/s 1.2s
+                   all        128        929      0.664      0.584      0.653      0.483
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+       4/30      1.84G      1.159      1.334      1.245          8        640: 100% ━━━━━━━━━━━━ 16/16 5.9it/s 2.7s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 6.5it/s 1.2s
+                   all        128        929       0.71      0.565      0.661      0.489
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+       5/30      1.84G      1.155      1.374      1.231          8        640: 100% ━━━━━━━━━━━━ 16/16 5.5it/s 2.9s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 6.1it/s 1.3s
+                   all        128        929      0.662      0.622      0.676        0.5
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+       6/30      1.84G      1.217      1.346      1.225          8        640: 100% ━━━━━━━━━━━━ 16/16 4.7it/s 3.4s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.9it/s 1.4s
+                   all        128        929      0.656      0.649      0.694      0.518
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+       7/30      1.84G      1.203      1.348      1.235          8        640: 100% ━━━━━━━━━━━━ 16/16 4.7it/s 3.4s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.4s
+                   all        128        929      0.759       0.59      0.697      0.519
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+       8/30      1.84G      1.165      1.297      1.202          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.6it/s 1.4s
+                   all        128        929      0.686      0.668       0.71      0.527
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+       9/30      1.84G      1.132      1.268       1.22          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.5s
+                   all        128        929      0.696      0.679      0.713      0.533
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      10/30      1.84G      1.102      1.187      1.171          8        640: 100% ━━━━━━━━━━━━ 16/16 4.5it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.4s
+                   all        128        929      0.694      0.684       0.72      0.538
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      11/30      1.84G      1.084      1.204      1.184          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.5s
+                   all        128        929       0.72      0.681       0.74      0.551
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      12/30      1.84G      1.095      1.236      1.205          8        640: 100% ━━━━━━━━━━━━ 16/16 4.5it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.5s
+                   all        128        929      0.732      0.673      0.752      0.559
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      13/30      1.84G      1.056      1.105      1.176          8        640: 100% ━━━━━━━━━━━━ 16/16 4.5it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.4s
+                   all        128        929      0.737      0.678      0.761       0.57
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      14/30      1.84G       1.08       1.13      1.176          8        640: 100% ━━━━━━━━━━━━ 16/16 4.5it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.5s
+                   all        128        929      0.739      0.678      0.773       0.58
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      15/30      1.84G      1.094        1.2      1.192          8        640: 100% ━━━━━━━━━━━━ 16/16 4.5it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.5s
+                   all        128        929      0.721      0.716      0.774      0.588
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      16/30      1.84G      1.103       1.16      1.185          8        640: 100% ━━━━━━━━━━━━ 16/16 4.5it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.4s
+                   all        128        929      0.759      0.723      0.779      0.593
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      17/30      1.84G      1.047      1.058      1.154          8        640: 100% ━━━━━━━━━━━━ 16/16 4.5it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.4s
+                   all        128        929      0.769      0.724      0.785        0.6
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      18/30      1.84G      1.027      1.077      1.163          8        640: 100% ━━━━━━━━━━━━ 16/16 4.5it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.6it/s 1.4s
+                   all        128        929      0.776      0.724       0.79      0.608
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      19/30      1.84G      1.025      1.041      1.132          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.5s
+                   all        128        929      0.771      0.728       0.79      0.609
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      20/30      1.84G      1.096      1.078      1.167          8        640: 100% ━━━━━━━━━━━━ 16/16 4.5it/s 3.6s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.5s
+                   all        128        929       0.78      0.724      0.794       0.61
+Closing dataloader mosaic
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      21/30      1.84G      1.064      1.125      1.118          8        640: 100% ━━━━━━━━━━━━ 16/16 4.3it/s 3.7s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.7it/s 1.4s
+                   all        128        929      0.787      0.718      0.792      0.609
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      22/30      1.84G      1.053      1.083      1.127          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.4s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.5s
+                   all        128        929      0.781      0.714      0.781        0.6
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      23/30      1.84G      1.088      1.156      1.144          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.4s
+                   all        128        929      0.776      0.711       0.78        0.6
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      24/30      1.84G      1.063      1.061      1.126          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.4it/s 1.5s
+                   all        128        929      0.777      0.711      0.777      0.598
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      25/30      1.84G       1.07      1.083      1.161          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.4it/s 1.5s
+                   all        128        929      0.773      0.716      0.776      0.599
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      26/30      1.84G      1.036     0.9993      1.122          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.4s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.5s
+                   all        128        929      0.777      0.712      0.777      0.603
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      27/30      1.84G      1.034     0.9919      1.119          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.4s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.4it/s 1.5s
+                   all        128        929      0.785      0.706      0.776      0.601
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      28/30      1.84G      1.036      1.016      1.135          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.4s
+                   all        128        929      0.804      0.707      0.777      0.603
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      29/30      1.84G      1.062      1.045      1.153          8        640: 100% ━━━━━━━━━━━━ 16/16 4.7it/s 3.4s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.5it/s 1.5s
+                   all        128        929      0.798      0.703      0.777      0.602
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+      30/30      1.84G      1.015     0.9648      1.112          8        640: 100% ━━━━━━━━━━━━ 16/16 4.6it/s 3.5s
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 5.4it/s 1.5s
+                   all        128        929      0.768      0.714      0.777      0.606
+
+30 epochs completed in 0.048 hours.
+Optimizer stripped from G:\gitOutside\YOLOv8\tests\runs\detect\runs\train\coco128_exp\weights\last.pt, 6.5MB
+Optimizer stripped from G:\gitOutside\YOLOv8\tests\runs\detect\runs\train\coco128_exp\weights\best.pt, 6.5MB
+
+Validating G:\gitOutside\YOLOv8\tests\runs\detect\runs\train\coco128_exp\weights\best.pt...
+Ultralytics 8.4.60  Python-3.10.20 torch-2.5.1+cu118 CUDA:0 (NVIDIA GeForce RTX 3050 4GB Laptop GPU, 4096MiB)
+Model summary (fused): 73 layers, 3,151,904 parameters, 0 gradients, 8.7 GFLOPs
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 4.2it/s 1.9s
+                   all        128        929      0.778      0.724      0.794       0.61
+                person         61        254      0.922      0.693       0.81      0.603
+               bicycle          3          6       0.77      0.333      0.455      0.331
+                   car         12         46      0.815      0.326      0.525      0.267
+            motorcycle          4          5      0.862        0.8      0.895      0.817
+              airplane          5          6      0.921          1      0.995      0.909
+                   bus          5          7      0.858      0.714       0.78      0.671
+                 train          3          3      0.566          1      0.995      0.763
+                 truck          5         12      0.813        0.5      0.577      0.414
+                  boat          2          6      0.621      0.553      0.631      0.426
+         traffic light          4         14      0.648      0.214      0.224      0.147
+             stop sign          2          2      0.607          1      0.995      0.746
+                 bench          5          9          1      0.768      0.925      0.669
+                  bird          2         16      0.894          1      0.991      0.707
+                   cat          4          4      0.746          1      0.995      0.932
+                   dog          9          9      0.902      0.889      0.968      0.808
+                 horse          1          2        0.8          1      0.995      0.622
+              elephant          4         17      0.901      0.882      0.936      0.793
+                  bear          1          1      0.658          1      0.995      0.995
+                 zebra          2          4       0.88          1      0.995      0.957
+               giraffe          4          9      0.789          1      0.995      0.812
+              backpack          4          6       0.57      0.333      0.472      0.319
+              umbrella          4         18      0.589      0.667      0.765      0.555
+               handbag          9         19       0.78      0.263       0.42      0.233
+                   tie          6          7      0.815      0.857      0.815      0.614
+              suitcase          2          4      0.902          1      0.995      0.743
+               frisbee          5          5      0.871        0.8      0.795      0.695
+                  skis          1          1      0.873          1      0.995      0.597
+             snowboard          2          7      0.749          1      0.964      0.664
+           sports ball          6          6      0.926        0.5      0.631      0.356
+                  kite          2         10      0.769      0.668      0.662      0.236
+          baseball bat          4          4      0.681      0.544      0.702      0.367
+        baseball glove          4          7      0.881      0.429      0.425       0.28
+            skateboard          3          5       0.79        0.6      0.684      0.508
+         tennis racket          5          7       0.86      0.429      0.589      0.369
+                bottle          6         18      0.783      0.401      0.553      0.337
+            wine glass          5         16      0.732      0.685      0.824      0.475
+                   cup         10         36      0.884        0.5       0.67      0.467
+                  fork          6          6      0.622      0.167      0.448      0.328
+                 knife          7         16      0.434      0.625      0.567      0.374
+                 spoon          5         22       0.71      0.455      0.509      0.304
+                  bowl          9         28      0.818      0.786      0.853      0.716
+                banana          1          1      0.759          1      0.995      0.895
+              sandwich          2          2      0.763          1      0.995      0.995
+                orange          1          4      0.766          1      0.945      0.623
+              broccoli          4         11      0.659      0.364      0.473      0.342
+                carrot          3         24      0.908       0.82      0.861      0.597
+               hot dog          1          2      0.739          1      0.995      0.995
+                 pizza          5          5      0.901          1      0.995       0.93
+                 donut          2         14      0.625          1      0.958      0.864
+                  cake          4          4      0.773          1      0.995       0.92
+                 chair          9         35      0.657      0.656      0.679       0.45
+                 couch          5          6      0.837      0.858      0.972      0.735
+          potted plant          9         14      0.712      0.786      0.837      0.634
+                   bed          3          3       0.82          1      0.995      0.857
+          dining table         10         13      0.824      0.615      0.746        0.6
+                toilet          2          2      0.788          1      0.995      0.945
+                    tv          2          2      0.798          1      0.995      0.895
+                laptop          2          3      0.855          1      0.995      0.896
+                 mouse          2          2          1          0      0.495      0.396
+                remote          5          8      0.957       0.75      0.745       0.62
+            cell phone          5          8       0.68      0.375      0.358      0.262
+             microwave          3          3       0.86          1      0.995      0.846
+                  oven          5          5      0.654        0.6      0.545      0.414
+                  sink          4          6      0.555      0.333      0.647      0.318
+          refrigerator          5          5      0.725          1      0.995      0.824
+                  book          6         29      0.709      0.379      0.548      0.334
+                 clock          8          9      0.925      0.889      0.903      0.809
+                  vase          2          2      0.637          1      0.995      0.945
+              scissors          1          1          1          0      0.995      0.249
+            teddy bear          6         21       0.64       0.81      0.807      0.567
+            toothbrush          2          5      0.698        0.8      0.938      0.639
+Speed: 1.8ms preprocess, 6.6ms inference, 0.0ms loss, 2.6ms postprocess per image
+Results saved to G:\gitOutside\YOLOv8\tests\runs\detect\runs\train\coco128_exp
+训练完成！结果保存在 runs/train/coco128_exp
