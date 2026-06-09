@@ -1,12 +1,12 @@
-# 使用 torch 加载 YOLOv8n 模型和 COCO128 数据集进行预测
+# 使用 torch 加载 YOLOv8n 模型，支持 COCO128 / COCO2017 数据集进行预测
+import sys
 import yaml
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from pathlib import Path
-import cv2
-import numpy as np
+import argparse
 
-from dataset import COCO128Dataset, collate_fn
+from dataset import COCO128Dataset, COCO2017Dataset, collate_fn
 
 
 def non_max_suppression(preds, conf_thres=0.25, iou_thres=0.45):
@@ -16,12 +16,11 @@ def non_max_suppression(preds, conf_thres=0.25, iou_thres=0.45):
     device = preds.device
     batch_detections = []
 
-    for pred in preds:  # pred shape: [84, 8400]
+    for pred in preds:
         pred = pred.permute(1, 0)  # [8400, 84]
         boxes = pred[:, :4]
         scores, cls_id = pred[:, 4:].max(dim=1)
 
-        # 置信度过滤
         mask = scores > conf_thres
         boxes, scores, cls_id = boxes[mask], scores[mask], cls_id[mask]
 
@@ -36,7 +35,6 @@ def non_max_suppression(preds, conf_thres=0.25, iou_thres=0.45):
         boxes_xyxy[:, 2] = boxes[:, 0] + boxes[:, 2] / 2
         boxes_xyxy[:, 3] = boxes[:, 1] + boxes[:, 3] / 2
 
-        # 按类别分组做 NMS
         keep = nms(boxes_xyxy, scores, iou_thres)
         boxes_xyxy, scores, cls_id = boxes_xyxy[keep], scores[keep], cls_id[keep]
 
@@ -55,65 +53,86 @@ def scale_boxes(boxes, orig_shape, img_size=640):
     dw = img_size - new_w
     dh = img_size - new_h
 
-    # 去除填充偏移
     boxes[:, [0, 2]] -= dw / 2
     boxes[:, [1, 3]] -= dh / 2
-
-    # 缩放到原图
     boxes[:, [0, 2]] *= (w / new_w)
     boxes[:, [1, 3]] *= (h / new_h)
-
-    # 裁剪到图像边界
     boxes[:, [0, 2]] = boxes[:, [0, 2]].clamp(0, w)
     boxes[:, [1, 3]] = boxes[:, [1, 3]].clamp(0, h)
 
     return boxes
 
 
+def build_dataloader(cfg, project_root, which, batch_size=16):
+    """根据 YAML 配置构建 DataLoader"""
+    dataset_root = project_root / cfg["path"]
+    names = cfg["names"]
+
+    # 判断类型
+    # 从 yaml 中取 split，可能是 "images/train2017"，只需末尾部分作标注文件名
+    split = cfg.get("val", cfg.get("train", "train2017"))
+    split_name = Path(split).name  # "train2017" / "val2017"
+    img_dir = dataset_root / split  # yaml 值已包含 images/ 前缀
+
+    if which == 'coco2017' or which == 'coco512':
+        # COCO2017 风格：JSON 标注
+        ann_dir = dataset_root / "annotations"
+        ann_file = ann_dir / f"instances_{split_name}.json"
+        print(f"Dataset type: COCO2017 (JSON annotation)")
+        dataset = COCO2017Dataset(img_dir, ann_file, img_size=640)
+    elif which == 'coco128':
+        # COCO128 风格：YOLO .txt 标签
+        print(f"Dataset type: COCO128 (YOLO .txt labels)")
+        dataset = COCO128Dataset(img_dir, img_size=640)
+    else:
+        raise ValueError(f"Unsupported dataset type: {which}")
+
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False,
+                            num_workers=0, collate_fn=collate_fn)
+    print(f"  Images: {len(dataset)}  |  Batch size: {batch_size}")
+    return dataloader, names
+
+
 def main():
+    parser = argparse.ArgumentParser(description="YOLOv8n torch inference")
+    parser.add_argument("--dataset", type=str, default="coco128",
+                        help="数据集名（将从 dataset_cfg/ 加载）")
+    parser.add_argument("--batch", type=int, default=16, help="批大小")
+    # parser.add_argument("--conf", type=float, default=0.25, help="置信度阈值")
+    # parser.add_argument("--iou", type=float, default=0.45, help="NMS IoU 阈值")
+    args = parser.parse_args()
+
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
+    project_root = Path("./")
 
-    project_root = Path('./')
-
-    # ===== 1. 从 dataset_cfg 读取 YAML 配置 =====
-    cfg_path = project_root / 'res/dataset/dataset_cfg/coco128.yaml'
+    # ===== 1. 加载 YAML 配置 =====
+    cfg_path = project_root / "res/dataset/dataset_cfg" / f'{args.dataset}.yaml'
     with open(cfg_path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
+    print(f"Config: {cfg_path.name}")
 
-    # 解析数据集路径：path + train 组成完整图片目录
-    dataset_root = project_root / cfg["path"]
-    img_dir = dataset_root / cfg["train"]
-    names = cfg["names"]  # dict {0: "person", 1: "bicycle", ...}
-    print(f"Config loaded: {cfg_path.name} ({len(names)} classes)")
-
-    # ===== 2. 使用 torch 加载 YOLOv8n 模型 =====
+    # ===== 2. 加载模型 =====
     model_path = project_root / "res/model/yolov8n.pt"
     ckpt = torch.load(model_path, map_location=device, weights_only=False)
     model = ckpt["model"].to(device)
     model.float().eval()
-    print(f"Model loaded: YOLOv8n ({sum(p.numel() for p in model.parameters()):,} params)")
+    print(f"Model: YOLOv8n ({sum(p.numel() for p in model.parameters()):,} params)")
 
-    # ===== 3. 使用 torch DataLoader 加载数据集 =====
-    dataset = COCO128Dataset(img_dir, img_size=640)
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=False,
-                            num_workers=0, collate_fn=collate_fn)
-    print(f"Dataset loaded: {len(dataset)} images from {img_dir}")
+    # ===== 3. 构建 DataLoader =====
+    dataloader, names = build_dataloader(cfg, project_root, args.dataset, args.batch)
 
     # ===== 4. 推理 =====
     total_detections = 0
     with torch.no_grad():
-        for images, filenames, shapes in dataloader:
+        for batch in dataloader:
+            images, filenames, shapes = batch[:3]
             images = images.to(device)
 
-            # 前向传播
             preds = model(images)
-
-            # NMS 后处理
             raw = preds[0] if isinstance(preds, (list, tuple)) else preds
             results = non_max_suppression(raw)
 
-            # 输出预测结果
             for dets, fname, shape in zip(results, filenames, shapes):
                 total_detections += dets.shape[0]
                 if dets.shape[0] > 0:

@@ -3,14 +3,17 @@ from torch.utils.data import Dataset
 from pathlib import Path
 import cv2
 import numpy as np
-from typing import List, Tuple
-from collections import defaultdict
+
 
 def collate_fn(batch):
     """自定义 collate：保留 shape 为原始 tuple，避免 default_collate 拆包"""
     imgs = torch.stack([item[0] for item in batch], 0)
     names = [item[1] for item in batch]
     shapes = [item[2] for item in batch]
+    # 如果包含标签则也一并保留
+    labels = [item[3] for item in batch] if len(batch[0]) > 3 else None
+    if labels is not None:
+        return imgs, names, shapes, labels
     return imgs, names, shapes
 
 
@@ -27,18 +30,17 @@ class COCO128Dataset(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.img_paths[idx]
-        # BGR 读取（YOLO 训练时用 cv2 读取，保持一致性）
         img = cv2.imread(str(img_path))
-        orig_shape = img.shape[:2]  # (H, W)
+        orig_shape = img.shape[:2]
+        pass
 
-        # letterbox 缩放与填充至正方形
         img = self._letterbox(img)
 
         # HWC -> CHW, BGR -> RGB, 归一化
         img = img[..., ::-1].astype(np.float32) / 255.0
         img = np.transpose(img, (2, 0, 1))
 
-        return torch.from_numpy(img), img_path.name, orig_shape
+        return torch.from_numpy(img), img_path.name, orig_shape, torch.zeros(0, 5)
 
     def _letterbox(self, img):
         """等比例缩放 + 边缘填充至 self.img_size x self.img_size"""
