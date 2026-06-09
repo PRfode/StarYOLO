@@ -3,6 +3,14 @@
 
 该架构借鉴MambaYOLO的架构，使用轻量化的StarNet替换。经过冻结训练和联合训练双阶段得到最终模型。
 
+## script/predict.py
+参数：
+- --dataset：数据集名（将从 dataset_cfg/ 加载）
+- --batch：批大小
+- --model：模型路径（将从 res/model/ 加载）
+- --show_dtc：打印每一张图片的所有检测结果
+- --show_res：输出模型的性能测试
+
 
 ## 注意：
 ### 数据集

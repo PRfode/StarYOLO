@@ -32,7 +32,6 @@ class COCO128Dataset(Dataset):
         img_path = self.img_paths[idx]
         img = cv2.imread(str(img_path))
         orig_shape = img.shape[:2]
-        pass
 
         img = self._letterbox(img)
 
