@@ -1,5 +1,4 @@
 # 使用 torch 加载 YOLOv8n 模型，支持 COCO128 / COCO2017 数据集进行预测
-import sys
 import yaml
 import torch
 from torch.utils.data import DataLoader
@@ -8,42 +7,7 @@ import argparse
 import numpy as np
 
 from dataset import COCO128Dataset, COCO2017Dataset, collate_fn
-
-
-def non_max_suppression(preds, conf_thres=0.25, iou_thres=0.45):
-    """对模型原始输出做 NMS（支持批量）"""
-    from torchvision.ops import nms
-
-    device = preds.device
-    batch_detections = []
-
-    for pred in preds:
-        pred = pred.permute(1, 0)  # [8400, 84]
-        boxes = pred[:, :4]
-        scores, cls_id = pred[:, 4:].max(dim=1)
-
-        mask = scores > conf_thres
-        boxes, scores, cls_id = boxes[mask], scores[mask], cls_id[mask]
-
-        if boxes.shape[0] == 0:
-            batch_detections.append(torch.zeros((0, 6), device=device))
-            continue
-
-        # cxcywh -> xyxy
-        boxes_xyxy = torch.zeros_like(boxes)
-        boxes_xyxy[:, 0] = boxes[:, 0] - boxes[:, 2] / 2
-        boxes_xyxy[:, 1] = boxes[:, 1] - boxes[:, 3] / 2
-        boxes_xyxy[:, 2] = boxes[:, 0] + boxes[:, 2] / 2
-        boxes_xyxy[:, 3] = boxes[:, 1] + boxes[:, 3] / 2
-
-        keep = nms(boxes_xyxy, scores, iou_thres)
-        boxes_xyxy, scores, cls_id = boxes_xyxy[keep], scores[keep], cls_id[keep]
-
-        dets = torch.cat([boxes_xyxy, scores.unsqueeze(1), cls_id.unsqueeze(1).float()], dim=1)
-        batch_detections.append(dets)
-
-    return batch_detections
-
+from ultralytics import YOLO
 
 def scale_boxes(boxes, orig_shape, img_size=640):
     """将预测框坐标从模型输出空间缩放回原图尺寸"""
@@ -245,15 +209,18 @@ def compute_map(all_preds, all_gts, num_classes=80):
     return float(map_50_95), float(map_50), float(map_75)
 
 
+ULTRALYTICS_PATH = Path('./ultralytics')
+
 def main():
     parser = argparse.ArgumentParser(description="YOLOv8n torch inference")
     parser.add_argument("--dataset", type=str, default="coco128",
                         help="数据集名（将从 dataset_cfg/ 加载）")
     parser.add_argument("--batch", type=int, default=16, help="批大小")
-    parser.add_argument("--model", type=str, default="yolov8n.pt",
+    parser.add_argument("--model", type=str, default="yolov8n",
                         help="模型文件名（将从 res/model/ 加载）")
-    parser.add_argument("--show_dtc", type=bool, default=False, help="打印每一张图片的所有检测结果")
-    parser.add_argument("--show_res", type=bool, default=True, help="输出模型的性能测试 (mAP)")
+    parser.add_argument("--show_dtc", action="store_true", help="打印每一张图片的所有检测结果")
+    parser.add_argument("--no-res", action="store_false", dest="show_res", default=True,
+                        help="跳过性能测试 (mAP)")
     parser.add_argument("--conf", type=float, default=0.001, help="置信度阈值（mAP 评估时推荐低阈值）")
     parser.add_argument("--iou", type=float, default=0.45, help="NMS IoU 阈值")
     args = parser.parse_args()
@@ -269,10 +236,10 @@ def main():
     print(f"Config: {cfg_path.name}")
 
     # ===== 2. 加载模型 =====
-    model_path = project_root / "res/model" / args.model
-    ckpt = torch.load(model_path, map_location=device, weights_only=False)
-    model = ckpt["model"].to(device)
-    model.float().eval()
+    model_path = project_root / "res/model" / f'{args.model}.pt'
+    model_cfg_path = ULTRALYTICS_PATH / f'models/{args.model}.yaml'
+    pretrained = YOLO(str(model_cfg_path)).load(str(model_path))
+    model = pretrained.model.float().eval()
     print(f"Model: {args.model} ({sum(p.numel() for p in model.parameters()):,} params)")
 
     # ===== 3. 构建 DataLoader =====
@@ -290,19 +257,17 @@ def main():
             labels = batch[3] if len(batch) > 3 else None
             images = images.to(device)
 
-            preds = model(images)
-            raw = preds[0] if isinstance(preds, (list, tuple)) else preds
-            results = non_max_suppression(raw, conf_thres=args.conf, iou_thres=args.iou)
+            # YOLO 返回 Results 列表，自带 NMS，框已在原图坐标 (xyxy)
+            results = pretrained(images, conf=args.conf, iou=args.iou, verbose=False)
 
-            for i, (dets, fname, shape) in enumerate(zip(results, filenames, shapes)):
-                total_detections += dets.shape[0]
-
-                # 展平预测框到原图坐标
-                if dets.shape[0] > 0:
-                    boxes_scaled = scale_boxes(dets[:, :4].clone(), shape)
-                    preds_img = torch.cat([boxes_scaled, dets[:, 4:6]], dim=1)  # (x1,y1,x2,y2,conf,cls)
+            for i, (result, fname, shape) in enumerate(zip(results, filenames, shapes)):
+                if result.boxes is not None:
+                    dets = result.boxes.data.clone()  # [N, 6] = (x1, y1, x2, y2, conf, cls) 在 640x640 空间
+                    # 将框从 640x640 空间缩放到原图坐标
+                    scale_boxes(dets[:, :4], shape)
                 else:
-                    preds_img = torch.zeros(0, 6, device=device)
+                    dets = torch.zeros((0, 6), device=device)
+                total_detections += dets.shape[0]
 
                 # 从数据集获取 GT
                 if labels is not None:
@@ -319,14 +284,13 @@ def main():
                 else:
                     gt_abs = torch.zeros(0, 5, device=device)
 
-                if args.show_dtc:
-                    if dets.shape[0] > 0:
-                        for box, score, cls_id in zip(boxes_scaled, dets[:, 4], dets[:, 5]):
-                            cls_name = names[int(cls_id.item())]
-                            print(f"{fname}: {cls_name} {score:.3f} "
-                                  f"[{box[0]:.0f}, {box[1]:.0f}, {box[2]:.0f}, {box[3]:.0f}]")
+                if args.show_dtc and dets.shape[0] > 0:
+                    for box in dets:
+                        cls_name = names[int(box[5].item())]
+                        print(f"{fname}: {cls_name} {box[4]:.3f} "
+                              f"[{box[0]:.0f}, {box[1]:.0f}, {box[2]:.0f}, {box[3]:.0f}]")
 
-                all_preds.append(preds_img.cpu())
+                all_preds.append(dets.cpu())
                 all_gts.append(gt_abs.cpu())
 
     print(f"\nTotal detections: {total_detections}")
