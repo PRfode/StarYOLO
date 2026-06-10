@@ -30,6 +30,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--cos_lr", action="store_true", help="使用余弦退火，否则线性退火")
     parser.add_argument("--lrf_rate", type=float, default=1.0, help="最终衰减率")
+    parser.add_argument("--output", type=str, default="default", help="runs中输出的文件夹名称")
     args = parser.parse_args()
     
     if args.cos_lr:
@@ -111,7 +112,7 @@ def main():
         save_period=10,
         workers=4,
         project=os.path.join(PROJECT_ROOT, 'runs/train'),
-        name='staryolon-100',
+        name=args.output,
         exist_ok=True,
         verbose=True,
         pretrained=False,
