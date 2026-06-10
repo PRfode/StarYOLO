@@ -1,9 +1,20 @@
 """
-YOLOv8n — 只训练 backbone 第8层(C2f)，其余层加载预训练权重并冻结。
+使用层映射表加载预训练权重，冻结已映射层，训练未映射层。
+
+映射文件位于 ./res/mapping/{pretrained}_{model}.json，格式:
+  {"pretrained_layer_idx": "target_layer_idx", ...}
+
+只会加载映射文件中列出的层，未列出层随机初始化。
+已映射（加载了预训练权重）的层被冻结，未映射的层参与训练。
+
+用法:
+  conda run -n yolov8 python script/train_with_frozen.py \
+    --pretrained yolov8n --model yolov8nmod --dataset coco512
 """
 import sys
-import argparse
 import os
+import json
+import argparse
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
@@ -11,116 +22,168 @@ sys.path.insert(0, PROJECT_ROOT)
 import torch
 from ultralytics import YOLO
 
-# ── 配置 ──
-# yaml_path = os.path.join(PROJECT_ROOT, 'ultralytics/cfg/models/staryolon.yaml')
-# data_path = os.path.join(PROJECT_ROOT, 'res/dataset/dataset_cfg/coco512.yaml')
-PRETRAINED = os.path.join(PROJECT_ROOT, 'res/model/yolov8n.pt')
 
-BATCH = 16
-IMG_SIZE = 640
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+def load_mapping(mapping_path):
+    """加载层映射表，返回 {src_idx: tgt_idx} 均为 int。"""
+    with open(mapping_path) as f:
+        raw = json.load(f)
+
+    mapping = {}
+    for k, v in raw.items():
+        sk = int(k.replace("model.", "")) if "model." in k else int(k)
+        tv = int(v.replace("model.", "")) if "model." in v else int(v)
+        mapping[sk] = tv
+    return mapping
+
+
+def build_loaded_state_dict(src_sd, target_sd, mapping):
+    """
+    根据映射表从 src_sd 提取参数到 target_sd 的 key 空间。
+    返回 (loaded_dict, mismatches, not_founds)。
+    """
+    loaded = {}
+    mismatches = []
+    not_founds = []
+
+    for src_idx, tgt_idx in mapping.items():
+        src_prefix = f"model.{src_idx}."
+        tgt_prefix = f"model.{tgt_idx}."
+        for k, v in src_sd.items():
+            if k.startswith(src_prefix):
+                tgt_k = tgt_prefix + k[len(src_prefix):]
+                if tgt_k in target_sd:
+                    if target_sd[tgt_k].shape == v.shape:
+                        loaded[tgt_k] = v
+                    else:
+                        mismatches.append((k, tgt_k, v.shape, target_sd[tgt_k].shape))
+                else:
+                    not_founds.append((k, tgt_k))
+    return loaded, mismatches, not_founds
 
 
 def main():
-    parser = argparse.ArgumentParser(description="YOLOv8n inference / val on coco")
+    parser = argparse.ArgumentParser(description="Train with layer mapping")
+    parser.add_argument("--pt", type=str, default="yolov8n", help="预训练模型名")
+    parser.add_argument("--model", type=str, default="yolov8nmod", help="目标模型名")
     parser.add_argument("--dataset", type=str, default="coco512", help="数据集名")
-    parser.add_argument("--model", type=str, default="yolov8n", help="加载配置的模型名")
-    parser.add_argument("--batch", type=int, default=16, help="批大小")
-    parser.add_argument("--lr0", type=float, default=1e-3)
+    parser.add_argument("--batch", type=int, default=16)
     parser.add_argument("--epochs", type=int, default=50)
-    parser.add_argument("--cos_lr", action="store_true", help="使用余弦退火，否则线性退火")
-    parser.add_argument("--lrf_rate", type=float, default=1.0, help="最终衰减率")
-    parser.add_argument("--output", type=str, default="default", help="runs中输出的文件夹名称")
+    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--cos_lr", action="store_true", default=True,
+                        help="使用余弦退火，否则使用线性退火")
+    parser.add_argument("--lrf", type=float, default=1,
+                        help="最终学习率 = lr * lrf")
+    parser.add_argument("--workers", type=int, default=0, help="DataLoader workers")
+    parser.add_argument("--device", type=str, default="")
+    parser.add_argument("--output", type=str, default="",
+                        help="runs 中输出文件夹名（默认自动生成）")
     args = parser.parse_args()
-    
-    if args.cos_lr:
-        if args.lrf_rate == 1.0:
-            print("[Warning] lrf_rate should be set to less than 1.0 when using cos. Otherwise decay will not happen.")
-        else:
-            print(f"Using cos_lr with lrf_rate = {args.lrf_rate} ...")
-    else:
-        if args.lrf_rate == 1.0:
-            print("Using no lr decay ...")
-        else:
-            print(f"Using linear lr decay with lrf_rate = {args.lrf_rate} ...")  # 线性退火
 
-    
-    print("=" * 60)
-    print("Building YOLOv8n from YAML...")
-    print("=" * 60)
-    
-    yaml_path = os.path.join(PROJECT_ROOT, f'ultralytics/cfg/models/{args.model}.yaml')
-    data_path = os.path.join(PROJECT_ROOT, f'res/dataset/dataset_cfg/{args.dataset}.yaml')
+    device = args.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
+    output_name = args.output or f"{args.pt}2{args.model}-freezeMapped"
 
-    model: YOLO = YOLO(yaml_path)
+    print(f"Using device: {device}")
+    print(f"LR schedule: {'cosine' if args.cos_lr else 'linear'} (lrf={args.lrf})")
+    print(f"Output name: {output_name}")
 
-    # ── 加载预训练权重（跳过 model.8） ──
-    if os.path.exists(PRETRAINED):
-        print(f"\nLoading from {PRETRAINED} (skipping model.8) ...")
-        ckpt = torch.load(PRETRAINED, map_location='cpu', weights_only=False)
-        src_sd = ckpt.get('model', ckpt)
-        if isinstance(src_sd, torch.nn.Module):
-            src_sd = src_sd.state_dict()
+    # ===== Paths =====
+    mapping_path = os.path.join(PROJECT_ROOT, f"res/mapping/{args.pt}_{args.model}.json")
+    pretrained_path = os.path.join(PROJECT_ROOT, f"res/model/{args.pt}.pt")
+    model_yaml = os.path.join(PROJECT_ROOT, f"ultralytics/cfg/models/{args.model}.yaml")
+    data_yaml = os.path.join(PROJECT_ROOT, f"res/dataset/dataset_cfg/{args.dataset}.yaml")
 
-        target_sd = model.model.state_dict()
-        filtered = {}
-        skip_prefix = 'model.8.'
-        for k, v in src_sd.items():
-            if k.startswith(skip_prefix):
-                continue  # 跳过 layer 8，让它随机初始化
-            if k in target_sd and target_sd[k].shape == v.shape:
-                filtered[k] = v
+    # ===== 1. Load mapping =====
+    if not os.path.exists(mapping_path):
+        print(f"[Error] Mapping file not found: {mapping_path}")
+        sys.exit(1)
+    print(f"\nLoading mapping from {mapping_path} ...")
+    mapping = load_mapping(mapping_path)
+    print(f"  {len(mapping)} entries:")
+    for s, t in sorted(mapping.items()):
+        print(f"    model.{s} -> model.{t}")
 
-        model.model.load_state_dict(filtered, strict=False)
-        loaded = len(filtered)
-        total = len(target_sd)
-        print(f"  Loaded {loaded}/{total} params. Layer 8 randomly initialized.")
-
-        # ⚠️ 关键修复：设置 ckpt 使其为真值
-        # 否则 model.train() 内部 get_model(weights=None) 会丢弃已加载的权重
-        model.ckpt = {"epoch": 0}
-    else:
-        print(f"\nNo pretrained weights found.")
-
+    # ===== 2. Build target model =====
+    if not os.path.exists(model_yaml):
+        print(f"[Error] Model YAML not found: {model_yaml}")
+        sys.exit(1)
+    print(f"\nBuilding model from {model_yaml} ...")
+    model = YOLO(model_yaml)
+    total_layers = len(model.model.model)
     total_params = sum(p.numel() for p in model.model.parameters())
-    trainable_params = sum(p.numel() for p in model.model.parameters() if p.requires_grad)
-    print(f"Total params: {total_params:,}")
-    print(f"Trainable (before freeze): {trainable_params:,}")
+    print(f"  Layers: {total_layers}, Params: {total_params:,}")
 
-    # ── 训练：冻结所有层，只训练 model.8 ──
-    FREEZE = [i for i in range(23) if i != 8]  # 0-22 去掉 8
+    # ===== 3. Load pretrained weights using mapping =====
+    if not os.path.exists(pretrained_path):
+        print(f"[Error] Pretrained weights not found: {pretrained_path}")
+        sys.exit(1)
+    print(f"\nLoading pretrained from {pretrained_path} ...")
+    ckpt = torch.load(pretrained_path, map_location="cpu", weights_only=False)
+    src_sd = ckpt.get("model", ckpt)
+    if isinstance(src_sd, torch.nn.Module):
+        src_sd = src_sd.state_dict()
 
-    print("\n" + "=" * 60)
-    print(f"Training only layer 8 (C2f). Freezing layers: {FREEZE}")
-    print("=" * 60)
+    target_sd = model.model.state_dict()
+    loaded_dict, mismatches, not_founds = build_loaded_state_dict(src_sd, target_sd, mapping)
 
+    model.model.load_state_dict(loaded_dict, strict=False)
+    print(f"  Loaded {len(loaded_dict)} / {len(target_sd)} parameter tensors")
+
+    if mismatches:
+        print(f"  Shape mismatches ({len(mismatches)}):")
+        for s, t, sh, th in mismatches[:5]:
+            print(f"    {s} -> {t}:  {list(sh)} vs {list(th)}")
+    if not_founds:
+        print(f"  Keys not found in target ({len(not_founds)}):")
+        for s, t in not_founds[:5]:
+            print(f"    {s} -> {t}  (target key '{t}' missing)")
+
+    # ── 关键修复：避免 model.train() 丢弃已加载的权重 ──
+    model.ckpt = {"epoch": 0}
+
+    # ===== 4. Determine freeze strategy =====
+    # 已映射（加载了预训练权重）的层 → 冻结
+    # 未映射（随机初始化）的层 → 训练
+    mapped_tgt_idxs = set(mapping.values())
+    freeze_list = sorted(mapped_tgt_idxs)
+    trainable_idxs = [i for i in range(total_layers) if i not in mapped_tgt_idxs]
+
+    learnable_params = sum(
+        p.numel() for n, p in model.model.named_parameters()
+        if p.requires_grad and not any(f"model.{i}." in n for i in freeze_list)
+    )
+
+    print(f"\n{'='*60}")
+    print(f"Freeze strategy: mapped layers frozen, unmapped layers trained")
+    print(f"  Frozen  layers ({len(freeze_list)}): {freeze_list}")
+    print(f"  Trainable layers ({len(trainable_idxs)}): {trainable_idxs}")
+    print(f"  Trainable params: {learnable_params:,} ({learnable_params/total_params*100:.2f}%)")
+    print(f"{'='*60}\n")
+
+    # ===== 5. Train =====
     model.train(
-        amp=True,  # 使用混合精度训练
-        data=data_path,
+        data=data_yaml,
         epochs=args.epochs,
-        batch=BATCH,
-        imgsz=IMG_SIZE,
-        device=DEVICE,
-        freeze=FREEZE,
-
-        optimizer='AdamW',
-        lr0=args.lr0, # 初始学习率
-        lrf=args.lrf_rate, # 最终学习率 = lr0 * lrf
+        batch=args.batch,
+        imgsz=640,
+        device=device,
+        freeze=freeze_list,
+        optimizer="AdamW",
+        lr0=args.lr,
+        lrf=args.lrf,
         weight_decay=5e-4,
-
         save=True,
         save_period=10,
-        workers=4,
-        project=os.path.join(PROJECT_ROOT, 'runs/train'),
-        name=args.output,
+        workers=args.workers,
+        amp=True,
+        project=os.path.join(PROJECT_ROOT, "runs/train"),
+        name=output_name,
         exist_ok=True,
         verbose=True,
         pretrained=False,
-
         warmup_epochs=3,
         warmup_momentum=0.8,
         warmup_bias_lr=0.1,
-        cos_lr=args.cos_lr, # 余弦退火，如果不使用就是线性退火
+        cos_lr=args.cos_lr,
     )
 
     print("\nDone!")

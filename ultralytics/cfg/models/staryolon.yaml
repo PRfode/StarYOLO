@@ -35,6 +35,6 @@ head:
 
   - [-1, 1, Conv, [512, 3, 2]]
   - [[-1, 8], 1, Concat, [1]]  # cat backbone P5
-  - [-1, 3, C2f, [1024]]       # 21 (P5/32-large)
+  - [-1, 3, C2f, [1024]]       # 20 (P5/32-large)
 
-  - [[14, 17, 20], 1, Detect, [nc]]  # Detect(P3, P4, P5)
+  - [[14, 17, 20], 1, Detect, [nc]]  # 21 Detect(P3, P4, P5)
