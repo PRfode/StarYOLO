@@ -1,0 +1,11 @@
+**/__pycache__/
+.vscode/
+.pycache/
+
+doc/
+reference/
+runs/*
+res/*
+
+CLAUDE.md
+!**/.placeholder
