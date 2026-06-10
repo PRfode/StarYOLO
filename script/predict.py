@@ -53,7 +53,14 @@ def main():
         verbose=True,
     )
 
-    # ===== 可选：逐图推理输出 =====
+    # # ===== 输出 mAP / mAP50 / mAP75 =====
+    # metrics = results.results_dict
+    # print(f"\n=== Overall Metrics ===")
+    # print(f"  mAP50:    {metrics.get('metrics/mAP50', 0):.3f}")
+    # print(f"  mAP75:    {metrics.get('metrics/mAP75', 0):.3f}")
+    # print(f"  mAP:      {metrics.get('metrics/mAP50-95', 0):.3f}")
+
+    # ===== 逐图推理输出 =====
     if args.show_dtc:
         print("\n--- Per-image detections ---")
         pred_results = model.predict(
