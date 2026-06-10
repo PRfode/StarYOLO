@@ -1,4 +1,8 @@
 # 使用 torch 加载 YOLOv8n 模型，支持 COCO128 / COCO2017 数据集进行预测
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import yaml
 import torch
 from torch.utils.data import DataLoader
