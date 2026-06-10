@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>基于YOLOv8 加入StarBlock和MambaYOLO模块的目标检测</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f6f9fc 0%, #edf2f7 100%);
+            font-family: 'Segoe UI', 'Roboto', 'Inter', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        /* 主卡片容器 */
+        .glass-card {
+            max-width: 820px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(0px);
+            border-radius: 2.5rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.25), 0 8px 18px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1E2A5E 0%, #121e3c 100%);
+            padding: 1.6rem 2rem;
+            color: white;
+        }
+
+        .header h1 {
+            font-weight: 600;
+            font-size: 1.8rem;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .header h1:before {
+            content: "🎯";
+            font-size: 1.8rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.85;
+            margin-top: 0.5rem;
+            font-weight: 400;
+        }
+
+        .content {
+            padding: 2rem 2rem 1.5rem 2rem;
+        }
+
+        /* 模型控制栏 — 双按钮组 */
+        .model-control-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: #f1f4f9;
+            padding: 0.8rem 1.2rem;
+            border-radius: 2rem;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.02), 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .model-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .ctrl-btn {
+            border: none;
+            padding: 0.55rem 1.3rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .ctrl-btn.start {
+            background: #10b981;
+            color: white;
+            border: none;
+        }
+        .ctrl-btn.start:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+        .ctrl-btn.stop {
+            background: #ef4444;
+            color: white;
+        }
+        .ctrl-btn.stop:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+        .ctrl-btn:active {
+            transform: translateY(1px);
+        }
+        .model-status {
+            font-size: 0.85rem;
+            background: #eef2ff;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            color: #1e293b;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-led {
+            width: 10px;
+            height: 10px;
+            border-radius: 10px;
+            background-color: #9ca3af;
+            display: inline-block;
+            box-shadow: 0 0 2px rgba(0,0,0,0.2);
+        }
+        .status-led.active {
+            background-color: #10b981;
+            box-shadow: 0 0 6px #10b981;
+        }
+        .status-led.inactive {
+            background-color: #9ca3af;
+        }
+
+        /* 上传区域 */
+        .upload-zone {
+            background: #fefefe;
+            border: 2px dashed #cbd5e1;
+            border-radius: 1.8rem;
+            padding: 1.8rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            margin-bottom: 1.8rem;
+            position: relative;
+        }
+        .upload-zone:hover {
+            border-color: #3b82f6;
+            background: #f8fafd;
+            transform: scale(1.01);
+        }
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 0.6rem;
+        }
+        .upload-zone .title {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #1e293b;
+        }
+        .upload-zone .sub {
+            font-size: 0.8rem;
+            color: #5b6e8c;
+            margin-top: 0.3rem;
+        }
+        .file-info {
+            margin-top: 0.8rem;
+            background: #eef2ff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: #1e40af;
+            font-weight: 500;
+        }
+        .preview-section {
+            background: #f1f5f9;
+            border-radius: 1.5rem;
+            padding: 1rem;
+            margin-bottom: 1.8rem;
+        }
+        .preview-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .image-preview-container {
+            display: flex;
+            justify-content: center;
+            background: #ffffff;
+            border-radius: 1.2rem;
+            padding: 1rem;
+        }
+        #uploadedPreview {
+            max-width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .action-btn {
+            width: 100%;
+            background: linear-gradient(98deg, #1E2A5E 0%, #2d3a6e 100%);
+            border: none;
+            padding: 0.9rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 16px -8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 1.8rem;
+        }
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background: linear-gradient(98deg, #2a3a70 0%, #1f2c58 100%);
+        }
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .result-section {
+            background: #ffffffea;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            border: 1px solid #e2e8f0;
+        }
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 1rem;
+            border-left: 4px solid #3b82f6;
+            padding-left: 12px;
+        }
+        .result-img-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fef9f0;
+            min-height: 180px;
+            border-radius: 1.2rem;
+        }
+        #resultImg {
+            max-width: 100%;
+            max-height: 280px;
+            object-fit: contain;
+            border-radius: 1rem;
+            display: block;
+        }
+        .placeholder-result {
+            color: #a0afc3;
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.9rem;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s;
+        }
+        .loading-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .loading-card {
+            background: white;
+            padding: 1.6rem 2rem;
+            border-radius: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.3);
+            min-width: 200px;
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #1E2A5E;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #6c7a91;
+            padding: 1rem 1rem 1.2rem;
+            border-top: 1px solid #e9edf2;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="glass-card">
+    <div class="header">
+        <h1>YOLOv8 + StarBlock,MambaYOLO的目标检测</h1>
+        <p>启动/关闭 MyYOLO 模型 | 上传图片获得实时检测结果</p>
+    </div>
+
+    <div class="content">
+        <!-- 模型控制区域：启用模型 / 关闭模型 + 状态显示 -->
+        <div class="model-control-bar">
+            <div class="model-buttons">
+                <button id="startModelBtn" class="ctrl-btn start">▶ 启动模型</button>
+                <button id="stopModelBtn" class="ctrl-btn stop">⏹️ 释放模型</button>
+            </div>
+            <div class="model-status" id="modelStatusArea">
+                <span class="status-led" id="statusLed"></span>
+                <span id="modelStatusText">模型未加载</span>
+            </div>
+        </div>
+
+        <!-- 上传区域 -->
+        <div id="uploadZone" class="upload-zone">
+            <div class="upload-icon">📸</div>
+            <div class="title">点击或拖拽图片至此区域</div>
+            <div class="sub">支持 JPG, PNG, WEBP (最大 10MB)</div>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/jpg" style="display: none;" />
+            <div id="fileNameDisplay" class="file-info hidden">
+                <span>📎</span> <span id="fileNameText"></span>
+            </div>
+        </div>
+
+        <!-- 本地预览区 -->
+        <div class="preview-section" id="previewSection" style="display: none;">
+            <div class="preview-label">
+                📋 原始图像
+            </div>
+            <div class="image-preview-container">
+                <img id="uploadedPreview" alt="预览图" style="max-width:100%; max-height:200px; object-fit:contain;">
+            </div>
+        </div>
+
+        <!-- 检测按钮 -->
+        <button id="runBtn" class="action-btn" disabled>
+            🚀 发送至后端检测
+        </button>
+
+        <!-- 检测结果 -->
+        <div class="result-section">
+            <div class="result-header">
+                🔍 目标检测结果
+            </div>
+            <div class="result-img-box" id="resultBox">
+                <img id="resultImg" style="display: none;" alt="检测结果" />
+                <div id="resultPlaceholder" class="placeholder-result">
+                    ✨ 模型启动后，上传图片点击检测即可显示结果
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        ⚡ 前后端联动 | 启动模型后可用，释放模型可节省显存
+    </footer>
+</div>
+
+<!-- 全局loading -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-card">
+        <div class="spinner"></div>
+        <div class="loading-text">处理中，请稍后...</div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // DOM 元素
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const fileNameText = document.getElementById('fileNameText');
+        const previewSection = document.getElementById('previewSection');
+        const uploadedPreview = document.getElementById('uploadedPreview');
+        const runBtn = document.getElementById('runBtn');
+        const resultImg = document.getElementById('resultImg');
+        const resultPlaceholder = document.getElementById('resultPlaceholder');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // 模型控制元素
+        const startModelBtn = document.getElementById('startModelBtn');
+        const stopModelBtn = document.getElementById('stopModelBtn');
+        const statusLed = document.getElementById('statusLed');
+        const modelStatusText = document.getElementById('modelStatusText');
+
+        // 状态管理
+        let currentFile = null;
+        let isModelReady = false;      // 前端缓存模型就绪标志（用于UI交互）
+
+        // 辅助函数: 显示/隐藏loading
+        function showLoading(show, customText = "AI 模型推理中，请稍后...") {
+            const loadingTextElem = document.querySelector('#loadingOverlay .loading-text');
+            if (loadingTextElem && customText) loadingTextElem.innerText = customText;
+            if (show) {
+                loadingOverlay.classList.add('active');
+            } else {
+                loadingOverlay.classList.remove('active');
+                // 恢复默认文案
+                if (loadingTextElem) loadingTextElem.innerText = "处理中，请稍后...";
+            }
+        }
+
+        // 更新模型状态UI (根据后端返回的真实情况)
+        function updateModelUI(loaded) {
+            isModelReady = loaded;
+            if (loaded) {
+                statusLed.className = "status-led active";
+                modelStatusText.innerText = "模型已加载 (GPU/CPU)";
+                // 如果已有选中的图片，启用检测按钮
+                updateButtonState();
+            } else {
+                statusLed.className = "status-led inactive";
+                modelStatusText.innerText = "模型未加载";
+                // 模型未加载时，检测按钮强制禁用
+                runBtn.disabled = true;
+            }
+        }
+
+        // 更新检测按钮可用性：模型已加载 && 有图片
+        function updateButtonState() {
+            if (isModelReady && currentFile) {
+                runBtn.disabled = false;
+            } else {
+                runBtn.disabled = true;
+            }
+        }
+
+        // 清除之前的结果图片
+        function clearResultImage() {
+            if (resultImg.src) {
+                if (resultImg.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(resultImg.src);
+                }
+                resultImg.src = '';
+            }
+            resultImg.style.display = 'none';
+            resultPlaceholder.style.display = 'block';
+        }
+
+        // 显示结果图片
+        function displayResultImage(blob) {
+            if (resultImg.src && resultImg.src.startsWith('blob:')) {
+                URL.revokeObjectURL(resultImg.src);
+            }
+            const objectURL = URL.createObjectURL(blob);
+            resultImg.src = objectURL;
+            resultImg.style.display = 'block';
+            resultPlaceholder.style.display = 'none';
+        }
+
+        // 处理文件选择
+        function handleFileSelected(file) {
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                alert('请选择一个有效的图片文件 (jpeg, png, webp 等)');
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                alert('文件大小超过 10MB，请压缩后重试');
+                return;
+            }
+
+            currentFile = file;
+            fileNameText.innerText = file.name;
+            fileNameDisplay.classList.remove('hidden');
+            previewSection.style.display = 'block';
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedPreview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            clearResultImage();
+            updateButtonState();
+        }
+
+        function openFileDialog() {
+            fileInput.click();
+        }
+
+        // 后端接口调用封装 (通用post json)
+        async function callModelAction(endpoint, actionName) {
+            showLoading(true, `${actionName}中，请稍后...`);
+            try {
+                const response = await fetch(`http://localhost:8000${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    return { success: true, message: data.status || data.detail || "操作成功" };
+                } else {
+                    throw new Error(data.detail || `请求失败 (${response.status})`);
+                }
+            } catch (err) {
+                console.error(`${actionName}错误:`, err);
+                alert(`${actionName}失败: ${err.message}\n请确保后端服务运行在 http://localhost:8000`);
+                return { success: false, message: err.message };
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function fetchModelStatus() {
+            const resp = await fetch(
+                'http://localhost:8000/model_status'
+            );
+
+            const data = await resp.json();
+
+            updateModelUI(data.loaded);
+        }
+
+        // 启动模型
+        async function startModel() {
+            if (isModelReady) {
+                alert("模型已经处于加载状态，无需重复启动");
+                return;
+            }
+            const result = await callModelAction('/start_model', '启动模型');
+            if (result.success) {
+                updateModelUI(true);
+                alert("✅ 模型加载成功！现在可以进行目标检测");
+            } else {
+                updateModelUI(false);
+            }
+        }
+
+        // 停止模型（释放显存）
+        async function stopModel() {
+            if (!isModelReady) {
+                alert("模型尚未加载，无需释放");
+                return;
+            }
+            const result = await callModelAction('/stop_model', '释放模型');
+            if (result.success) {
+                updateModelUI(false);
+                // 清除可能残留的检测结果显示
+                clearResultImage();
+                alert("模型已从内存/显存中释放");
+            } else {
+                // 保持原状态，但可能后端失败
+                console.warn("释放模型失败");
+            }
+        }
+
+        // 图片检测核心逻辑
+        async function runDetection() {
+            if (!isModelReady) {
+                alert("请先点击「启动模型」加载 AI 模型");
+                return;
+            }
+            if (!currentFile) {
+                alert("请先选择一张图片");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', currentFile);
+
+            showLoading(true, "目标检测推理中...");
+            runBtn.disabled = true;  // 防止重复点击
+
+            try {
+                const response = await fetch('http://localhost:8000/process', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    let errorDetail = `后端错误 (${response.status})`;
+                    try {
+                        const errText = await response.text();
+                        if (errText) errorDetail += `: ${errText.substring(0, 150)}`;
+                    } catch(e) {}
+                    throw new Error(errorDetail);
+                }
+
+                const blob = await response.blob();
+                if (!blob.type.startsWith('image/')) {
+                    throw new Error('后端返回非图片数据，请确认 process 接口返回 png');
+                }
+                displayResultImage(blob);
+            } catch (error) {
+                console.error('检测失败:', error);
+                alert(`目标检测失败: ${error.message}\n请确保后端模型正常且已启动。`);
+                clearResultImage();
+            } finally {
+                showLoading(false);
+                // 恢复按钮状态（模型依然ready, 且有文件）
+                if (isModelReady && currentFile) {
+                    runBtn.disabled = false;
+                } else {
+                    runBtn.disabled = true;
+                }
+            }
+        }
+
+        // 绑定事件
+        fileInput.addEventListener('change', (event) => {
+            if (event.target.files && event.target.files.length > 0) {
+                handleFileSelected(event.target.files[0]);
+            }
+            fileInput.value = '';
+        });
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = '#3b82f6';
+            uploadZone.style.backgroundColor = '#f0f7ff';
+        });
+        uploadZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = '#cbd5e1';
+            uploadZone.style.backgroundColor = '#fefefe';
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = '#cbd5e1';
+            uploadZone.style.backgroundColor = '#fefefe';
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) handleFileSelected(files[0]);
+        });
+        uploadZone.addEventListener('click', () => openFileDialog());
+
+        startModelBtn.addEventListener('click', startModel);
+        stopModelBtn.addEventListener('click', stopModel);
+        runBtn.addEventListener('click', runDetection);
+
+        // 初始化: 同步后端模型状态 + 设置UI
+        fetchModelStatus().then(() => {
+            // 若后端模型未加载，按钮禁用相关处理已在 updateModelUI 完成
+            if (!isModelReady) {
+                runBtn.disabled = true;
+            }
+            updateButtonState();
+        });
+
+        // 额外清理
+        window.addEventListener('beforeunload', () => {
+            if (resultImg.src && resultImg.src.startsWith('blob:')) {
+                URL.revokeObjectURL(resultImg.src);
+            }
+        });
+
+        // 初始隐藏预览区
+        previewSection.style.display = 'none';
+        clearResultImage();
+    })();
+</script>
+</body>
+</html>
