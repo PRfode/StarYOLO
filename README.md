@@ -23,6 +23,8 @@
 
 剩下缺什么直接pip install
 
+***不要pip install ultralytics***
+
 ### 运行
 脚本执行位置在根目录，而不是在scripts文件夹下。
 

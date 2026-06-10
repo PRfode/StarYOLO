@@ -1,7 +1,7 @@
 # 这是使用coco2017的前512张训练集图片和前128张验证集图片的子集配置。用于轻量验证模型实现
 
 # 数据集根目录的绝对或相对路径，务必填写正确
-path: res/dataset/coco512
+path: G:/gitOutside/StarYOLO/res/dataset/coco512
 
 # 训练和验证图片所在的子目录（相对于 path）
 train: images/train2017
