@@ -15,6 +15,7 @@ import sys
 import os
 import json
 import argparse
+import time
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
@@ -77,10 +78,14 @@ def main():
     parser.add_argument("--device", type=str, default="")
     parser.add_argument("--output", type=str, default="",
                         help="runs 中输出文件夹名（默认自动生成）")
+    parser.add_argument("--fraction", type=float, default=1.,
+                        help="采样前N%进行训练")
+    parser.add_argument("--save_period", type=int, default=10,
+                        help="每 N 个 epoch 保存一次权重")
     args = parser.parse_args()
 
     device = args.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
-    output_name = args.output or f"{args.pt}2{args.model}-freezeMapped"
+    output_name = args.output or f"{args.model}-{int(time.time())}"
 
     print(f"Using device: {device}")
     print(f"LR schedule: {'cosine' if args.cos_lr else 'linear'} (lrf={args.lrf})")
@@ -172,7 +177,7 @@ def main():
         lrf=args.lrf,
         weight_decay=5e-4,
         save=True,
-        save_period=10,
+        save_period=args.save_period,
         workers=args.workers,
         amp=True,
         project=os.path.join(PROJECT_ROOT, "runs/train"),
@@ -184,6 +189,7 @@ def main():
         warmup_momentum=0.8,
         warmup_bias_lr=0.1,
         cos_lr=args.cos_lr,
+        fraction=args.fraction,
     )
 
     print("\nDone!")
