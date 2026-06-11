@@ -432,6 +432,7 @@ class BaseTrainer:
 
                 # Validation
                 if self.args.val or final_epoch or self.stopper.possible_stop or self.stop:
+                    self.train_loader.shutdown()
                     self.metrics, self.fitness = self.validate()
                 self.save_metrics(metrics={**self.label_loss_items(self.tloss), **self.metrics, **self.lr})
                 self.stop |= self.stopper(epoch + 1, self.fitness) or final_epoch

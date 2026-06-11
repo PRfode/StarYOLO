@@ -44,8 +44,16 @@ class InfiniteDataLoader(dataloader.DataLoader):
 
     def __iter__(self):
         """Creates a sampler that repeats indefinitely."""
+        if self.iterator is None:
+            self.iterator = self._get_iterator()
         for _ in range(len(self)):
             yield next(self.iterator)
+
+    def shutdown(self):
+        """Shut down the internal iterator and its workers, releasing pinned memory."""
+        if hasattr(self, "iterator") and self.iterator is not None:
+            self.iterator._shutdown_workers()
+            self.iterator = None
 
     def reset(self):
         """
