@@ -74,6 +74,29 @@ class _RepeatSampler:
             yield from iter(self.sampler)
 
 
+class FractionSampler(torch.utils.data.Sampler):
+    """
+    每个 epoch 从完整数据集中随机采样 sample_rate 比例的样本。
+
+    每次 __iter__ 重新随机选取子集，实现每个 epoch 使用不同的样本子集。
+    """
+
+    def __init__(self, data_source, sample_rate=1.0, generator=None):
+        self.data_source = data_source
+        self.sample_rate = sample_rate
+        self.generator = generator if generator is not None else torch.Generator()
+        self.num_samples = max(1, int(len(data_source) * sample_rate))
+
+    def __iter__(self):
+        n = len(self.data_source)
+        rand_indices = torch.randperm(n, generator=self.generator)
+        selected = rand_indices[:self.num_samples]
+        yield from selected[torch.randperm(self.num_samples, generator=self.generator)].tolist()
+
+    def __len__(self):
+        return self.num_samples
+
+
 def seed_worker(worker_id):  # noqa
     """Set dataloader worker seed https://pytorch.org/docs/stable/notes/randomness.html#dataloader."""
     worker_seed = torch.initial_seed() % 2**32
@@ -124,12 +147,16 @@ def build_grounding(cfg, img_path, json_file, batch, mode="train", rect=False, s
     )
 
 
-def build_dataloader(dataset, batch, workers, shuffle=True, rank=-1):
+def build_dataloader(dataset, batch, workers, shuffle=True, rank=-1, sample_rate=1.0):
     """Return an InfiniteDataLoader or DataLoader for training or validation set."""
     batch = min(batch, len(dataset))
     nd = torch.cuda.device_count()  # number of CUDA devices
     nw = min(os.cpu_count() // max(nd, 1), workers)  # number of workers
     sampler = None if rank == -1 else distributed.DistributedSampler(dataset, shuffle=shuffle)
+    # 当 sample_rate < 1.0 时，用 FractionSampler 替代默认的随机采样
+    if sample_rate < 1.0 and shuffle:
+        sampler = FractionSampler(dataset, sample_rate)
+        shuffle = False  # sampler 内部已打乱
     generator = torch.Generator()
     generator.manual_seed(6148914691236517205 + RANK)
     return InfiniteDataLoader(

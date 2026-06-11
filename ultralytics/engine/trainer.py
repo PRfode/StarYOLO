@@ -257,6 +257,9 @@ class BaseTrainer:
             f"Trainable: {trainable_params / total_params * 100:.1f}% "
             f"({trainable_params:,} / {total_params:,} params)"
         )
+        sample_rate = getattr(self.args, "sample_rate", 1.0)
+        if sample_rate < 1.0:
+            LOGGER.info(f"Sample rate: {sample_rate:.2f} (per-epoch random subset of dataset)")
 
         # Check AMP
         self.amp = torch.tensor(self.args.amp).to(self.device)  # True or False
