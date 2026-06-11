@@ -15,7 +15,6 @@ import sys
 import os
 import json
 import argparse
-import time
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
@@ -78,13 +77,10 @@ def main():
     parser.add_argument("--device", type=str, default="")
     parser.add_argument("--output", type=str, default="",
                         help="runs 中输出文件夹名（默认自动生成）")
-    parser.add_argument("--sample_rate", type=float, default=1., help="训练集上的样本采样率")
     args = parser.parse_args()
-    
-    assert args.sample_rate <= 1., "Sample rate must be <= 1."
 
     device = args.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
-    output_name = args.output or f"{args.model}-{int(time.time())}"
+    output_name = args.output or f"{args.pt}2{args.model}-freezeMapped"
 
     print(f"Using device: {device}")
     print(f"LR schedule: {'cosine' if args.cos_lr else 'linear'} (lrf={args.lrf})")
@@ -166,7 +162,6 @@ def main():
     # ===== 5. Train =====
     model.train(
         data=data_yaml,
-        sample_rate=args.sample_rate,
         epochs=args.epochs,
         batch=args.batch,
         imgsz=640,

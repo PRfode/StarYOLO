@@ -130,7 +130,6 @@ CFG_FRACTION_KEYS = {  # fractional float arguments with 0.0<=values<=1.0
     "conf",
     "iou",
     "fraction",
-    "sample_rate" # 数据集的样本采样率
 }
 CFG_INT_KEYS = {  # integer-only arguments
     "epochs",
