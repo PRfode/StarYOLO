@@ -864,7 +864,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         LOGGER.info(f"\n{'':>3}{'from':>20}{'n':>3}{'params':>10}  {'module':<45}{'arguments':<30}")
     ch = [ch]
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
-    for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
+    for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number of repeat, module name, args
         m = getattr(torch.nn, m[3:]) if "nn." in m else globals()[m]  # get module
         for j, a in enumerate(args):
             if isinstance(a, str):
@@ -898,7 +898,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             DWConvTranspose2d,
             C3x,
             RepC3,
-            SimpleStem, StarBlock, StarNetBlock, VisionClueMerge
+            SimpleStem, StarBlock, StarNetBlock, VisionClueMerge # 四个新增模块
         }:
             c1, c2 = ch[f], args[0]
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
@@ -941,10 +941,20 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = ch[f[-1]]
         else:
             c2 = ch[f]
+            
+        # 上方均为模块的特殊处理
+        # 下方为模块的通用处理
 
+        # 如果经过上面的处理 n > 1, 那么使用Sequential进行重复
         m_ = nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
+        
+        # 把 Python 的类名 <class 'xxx.yyy.ModuleName'> 转成可读的字符串 xxx.yyy.ModuleName。
         t = str(m)[8:-2].replace("__main__.", "")  # module type
+        
+        # 计算模块的参数数量
         m.np = sum(x.numel() for x in m_.parameters())  # number params
+        
+        # 把信息添加到模块中
         m_.i, m_.f, m_.type = i, f, t  # attach index, 'from' index, type
         if verbose:
             LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m.np:10.0f}  {t:<45}{str(args):<30}")  # print
