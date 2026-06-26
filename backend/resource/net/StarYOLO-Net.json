@@ -1,0 +1,1210 @@
+{
+  "node": [
+    {
+      "id": "l1",
+      "name": "L1",
+      "parentId": "backbone",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 19.411087036132812,
+        "y": 38.665771484375,
+        "width": 174.00017547607422,
+        "height": 279.0006103515625
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l1.stem",
+      "name": "Simple Stem",
+      "parentId": "l1",
+      "repeat": 1,
+      "orientation": "vertical",
+      "position": {
+        "x": 19.105361938476562,
+        "y": 93.03945922851562,
+        "width": 52,
+        "height": 166
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l1.odss",
+      "name": "*StarNetBlock*",
+      "parentId": "l1",
+      "repeat": 3,
+      "orientation": "vertical",
+      "position": {
+        "x": 92,
+        "y": 95,
+        "width": 62,
+        "height": 165
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l2",
+      "name": "L2",
+      "parentId": "backbone",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 220.32963943481445,
+        "y": 39.748748779296875,
+        "width": 185.0004425048828,
+        "height": 278.00054931640625
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l2.vcm",
+      "name": "Vision Clue Merge",
+      "parentId": "l2",
+      "repeat": 1,
+      "orientation": "vertical",
+      "position": {
+        "x": 19.358054399490356,
+        "y": 83.0787353515625,
+        "width": 57.4168701171875,
+        "height": 176.385498046875
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l2.odss",
+      "name": "*StarNetBlock*",
+      "parentId": "l2",
+      "repeat": 6,
+      "orientation": "vertical",
+      "position": {
+        "x": 104,
+        "y": 85,
+        "width": 57,
+        "height": 176
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "backbone",
+      "name": "ODMamba Backbone",
+      "parentId": null,
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": -251.3293161392212,
+        "y": 312.4164581298828,
+        "width": 889.8412284851074,
+        "height": 344.99871826171875
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l3",
+      "name": "L3",
+      "parentId": "backbone",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 430.16987228393555,
+        "y": 40.3626708984375,
+        "width": 196.01533889770508,
+        "height": 281.3654479980469
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l3.odss",
+      "name": "*StarNetBlock*",
+      "parentId": "l3",
+      "repeat": 6,
+      "orientation": "vertical",
+      "position": {
+        "x": 116,
+        "y": 81,
+        "width": 57,
+        "height": 176
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l4",
+      "name": "L4",
+      "parentId": "backbone",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 659.9531059265137,
+        "y": 40,
+        "width": 196,
+        "height": 281
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l4.vcm",
+      "name": "Vision Clue Merge",
+      "parentId": "l4",
+      "repeat": 1,
+      "orientation": "vertical",
+      "position": {
+        "x": 22.66845703125,
+        "y": 81.66632080078125,
+        "width": 64,
+        "height": 182
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l4.odss",
+      "name": "*StarNetBlock*",
+      "parentId": "l4",
+      "repeat": 3,
+      "orientation": "vertical",
+      "position": {
+        "x": 119,
+        "y": 80,
+        "width": 57,
+        "height": 183
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "l3.vcm",
+      "name": "Vision Clue Merge",
+      "parentId": "l3",
+      "repeat": 1,
+      "orientation": "vertical",
+      "position": {
+        "x": 27.8887939453125,
+        "y": 79.44390869140625,
+        "width": 64,
+        "height": 182
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck",
+      "name": "PAFPN",
+      "parentId": null,
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 697.9733276367188,
+        "y": 266.4021911621094,
+        "width": 894.464111328125,
+        "height": 466.26641845703125
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "sppf",
+      "name": "SPPF",
+      "parentId": "neck",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 30,
+        "y": 50.528717041015625,
+        "width": 65,
+        "height": 393.21905517578125
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.f",
+      "name": "neck",
+      "parentId": "neck",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 125.0228271484375,
+        "y": 45.113525390625,
+        "width": 742.8876953125,
+        "height": 403.42083740234375
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.c1",
+      "name": "Concatenate",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 101.8172607421875,
+        "y": 41.868682861328125,
+        "width": 82.72637939453125,
+        "height": 57.999664306640625
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.c2",
+      "name": "Concatenate",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 102.756591796875,
+        "y": 178.22067260742188,
+        "width": 81.8172607421875,
+        "height": 63.55511474609375
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.c3",
+      "name": "Concatenate",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 178.74822998046875,
+        "y": 318.56292724609375,
+        "width": 91.81707763671875,
+        "height": 60.99957275390625
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.odss1",
+      "name": "C2f",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 215,
+        "y": 178,
+        "width": 123,
+        "height": 62
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.odss2",
+      "name": "C2f",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 487,
+        "y": 318,
+        "width": 135,
+        "height": 60
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.odss3",
+      "name": "C2f",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 486,
+        "y": 40,
+        "width": 130,
+        "height": 59
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.odss4",
+      "name": "C2f",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 492,
+        "y": 178,
+        "width": 123,
+        "height": 61
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.u1",
+      "name": "Upsample",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 180.20379638671875,
+        "y": 117.99844360351562,
+        "width": 50,
+        "height": 41.000152587890625
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.u2",
+      "name": "Upsample",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 73.61773681640625,
+        "y": 261.14178466796875,
+        "width": 50,
+        "height": 43.00006103515625
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.cc1",
+      "name": "C3",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 15.72723388671875,
+        "y": 42.27252197265625,
+        "width": 65.2218017578125,
+        "height": 61.3328857421875
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.cc2",
+      "name": "C4",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 17.20172119140625,
+        "y": 177.6424560546875,
+        "width": 64.3328857421875,
+        "height": 64.55502319335938
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.cc3",
+      "name": "C5",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 16.27252197265625,
+        "y": 317.4088134765625,
+        "width": 64.9996337890625,
+        "height": 61.99957275390625
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.d1",
+      "name": "Down Sampling",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 439.692138671875,
+        "y": 116.36141967773438,
+        "width": 87.7978515625,
+        "height": 42.5556640625
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.c4",
+      "name": "Concatenate",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 369.3583984375,
+        "y": 178.09426879882812,
+        "width": 92,
+        "height": 61
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.d2",
+      "name": "Down Sampling",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 327.501220703125,
+        "y": 264.2458190917969,
+        "width": 88,
+        "height": 43
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.p1",
+      "name": "P3",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 649.2515869140625,
+        "y": 37.5770263671875,
+        "width": 65,
+        "height": 61
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.p2",
+      "name": "P4",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 648.1923828125,
+        "y": 177.784423828125,
+        "width": 65,
+        "height": 61
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.p3",
+      "name": "P5",
+      "parentId": "neck.f",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 650.8076171875,
+        "y": 318.3037109375,
+        "width": 65,
+        "height": 61
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "head",
+      "name": "Decoupled Head",
+      "parentId": null,
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 1650.2711181640625,
+        "y": 266.5238952636719,
+        "width": 894,
+        "height": 468.8570556640625
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.pd1",
+      "name": "Prediction Small",
+      "parentId": "head",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 45,
+        "y": 74,
+        "width": 225,
+        "height": 78
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.pd2",
+      "name": "Prediction Middle",
+      "parentId": "head",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 45,
+        "y": 216,
+        "width": 225,
+        "height": 78
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.pd3",
+      "name": "Prediction Large",
+      "parentId": "head",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 45,
+        "y": 355,
+        "width": 225,
+        "height": 78
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.loss",
+      "name": "Loss",
+      "parentId": "head",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 308.378662109375,
+        "y": 66.31838989257812,
+        "width": 542.419677734375,
+        "height": 373.70599365234375
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.1",
+      "name": "Prediction",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 16.250244140625,
+        "y": 153.4998779296875,
+        "width": 98.570068359375,
+        "height": 68
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.11",
+      "name": ".",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 143.0751953125,
+        "y": 51.114532470703125,
+        "width": 50,
+        "height": 53.833709716796875
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.12",
+      "name": ".",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 144.139404296875,
+        "y": 157.63531494140625,
+        "width": 50,
+        "height": 53.833740234375
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.13",
+      "name": ".",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 145.076904296875,
+        "y": 262.30450439453125,
+        "width": 50,
+        "height": 53.0003662109375
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.21",
+      "name": ".",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 209.985595703125,
+        "y": 50.038360595703125,
+        "width": 50,
+        "height": 52.1671142578125
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.22",
+      "name": ".",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 211.000732421875,
+        "y": 159.11221313476562,
+        "width": 50,
+        "height": 51.33380126953125
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.23",
+      "name": ".",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 213.30810546875,
+        "y": 262.8428955078125,
+        "width": 50,
+        "height": 51.33380126953125
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.33",
+      "name": ".",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 284.844482421875,
+        "y": 262.474365234375,
+        "width": 50,
+        "height": 51.33380126953125
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.32",
+      "name": ".",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 284.878173828125,
+        "y": 159.1182861328125,
+        "width": 50,
+        "height": 51.33380126953125
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.31",
+      "name": ".",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 283.06396484375,
+        "y": 48.90020751953125,
+        "width": 50,
+        "height": 53.000396728515625
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.l1",
+      "name": "CLS Loss",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 365.497802734375,
+        "y": 46.166748046875,
+        "width": 91.998779296875,
+        "height": 53
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.l2",
+      "name": "Bbox Loss",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 369,
+        "y": 156.66357421875,
+        "width": 92,
+        "height": 53
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "neck.l3",
+      "name": "Seg Loss",
+      "parentId": "neck.loss",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 371.5830078125,
+        "y": 259.8304443359375,
+        "width": 92,
+        "height": 53
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "sppf.sppf",
+      "name": "SPPF",
+      "parentId": "sppf",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 7.24993896484375,
+        "y": 44.6658935546875,
+        "width": 50,
+        "height": 50
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "sppf.sppf1",
+      "name": "SPPF",
+      "parentId": "sppf",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 7.77783203125,
+        "y": 179.80154418945312,
+        "width": 50,
+        "height": 50
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "sppf.sppf2",
+      "name": "SPPF",
+      "parentId": "sppf",
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": 6.52783203125,
+        "y": 318.4387512207031,
+        "width": 50,
+        "height": 50
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    },
+    {
+      "id": "input",
+      "name": "Input",
+      "parentId": null,
+      "repeat": 1,
+      "orientation": "horizontal",
+      "position": {
+        "x": -426.6534423828125,
+        "y": 452.62574005126953,
+        "width": 90.45831298828125,
+        "height": 78
+      },
+      "input": [],
+      "output": [],
+      "attr": {
+        "ssm_state": 16
+      }
+    }
+  ],
+  "link": [
+    {
+      "source": "l1.stem",
+      "target": "l1.odss"
+    },
+    {
+      "source": "l2.vcm",
+      "target": "l2.odss"
+    },
+    {
+      "source": "l3.vcm",
+      "target": "l3.odss"
+    },
+    {
+      "source": "l4.vcm",
+      "target": "l4.odss"
+    },
+    {
+      "source": "l1",
+      "target": "l2"
+    },
+    {
+      "source": "l2",
+      "target": "l3"
+    },
+    {
+      "source": "l3",
+      "target": "l4"
+    },
+    {
+      "source": "neck.cc1",
+      "target": "neck.c1"
+    },
+    {
+      "source": "neck.u1",
+      "target": "neck.c1"
+    },
+    {
+      "source": "neck.c1",
+      "target": "neck.odss3"
+    },
+    {
+      "source": "neck.cc2",
+      "target": "neck.c2"
+    },
+    {
+      "source": "neck.c2",
+      "target": "neck.odss1"
+    },
+    {
+      "source": "neck.odss1",
+      "target": "neck.u1"
+    },
+    {
+      "source": "neck.odss1",
+      "target": "neck.c4"
+    },
+    {
+      "source": "neck.cc3",
+      "target": "neck.u2"
+    },
+    {
+      "source": "neck.u2",
+      "target": "neck.c2"
+    },
+    {
+      "source": "neck.cc3",
+      "target": "neck.c3"
+    },
+    {
+      "source": "neck.odss2",
+      "target": "neck.c3"
+    },
+    {
+      "source": "neck.c4",
+      "target": "neck.odss4"
+    },
+    {
+      "source": "neck.odss3",
+      "target": "neck.d1"
+    },
+    {
+      "source": "neck.d1",
+      "target": "neck.c4"
+    },
+    {
+      "source": "neck.odss4",
+      "target": "neck.d2"
+    },
+    {
+      "source": "neck.d2",
+      "target": "neck.c3"
+    },
+    {
+      "source": "neck.odss3",
+      "target": "neck.p1"
+    },
+    {
+      "source": "neck.odss4",
+      "target": "neck.p2"
+    },
+    {
+      "source": "neck.odss2",
+      "target": "neck.p3"
+    },
+    {
+      "source": "neck.1",
+      "target": "neck.11"
+    },
+    {
+      "source": "neck.1",
+      "target": "neck.12"
+    },
+    {
+      "source": "neck.1",
+      "target": "neck.13"
+    },
+    {
+      "source": "neck.11",
+      "target": "neck.21"
+    },
+    {
+      "source": "neck.12",
+      "target": "neck.22"
+    },
+    {
+      "source": "neck.13",
+      "target": "neck.23"
+    },
+    {
+      "source": "neck.23",
+      "target": "neck.33"
+    },
+    {
+      "source": "neck.22",
+      "target": "neck.32"
+    },
+    {
+      "source": "neck.21",
+      "target": "neck.31"
+    },
+    {
+      "source": "neck.31",
+      "target": "neck.l1"
+    },
+    {
+      "source": "neck.32",
+      "target": "neck.l2"
+    },
+    {
+      "source": "neck.33",
+      "target": "neck.l3"
+    },
+    {
+      "source": "neck",
+      "target": "head"
+    },
+    {
+      "source": "neck.pd2",
+      "target": "neck.1"
+    },
+    {
+      "source": "neck.pd1",
+      "target": "neck.1"
+    },
+    {
+      "source": "neck.pd3",
+      "target": "neck.1"
+    },
+    {
+      "source": "l4.odss",
+      "target": "sppf.sppf2"
+    },
+    {
+      "source": "l3.odss",
+      "target": "sppf.sppf1"
+    },
+    {
+      "source": "l2.odss",
+      "target": "sppf.sppf"
+    },
+    {
+      "source": "input",
+      "target": "backbone"
+    },
+    {
+      "source": "sppf.sppf",
+      "target": "neck.cc1"
+    },
+    {
+      "source": "sppf.sppf1",
+      "target": "neck.cc2"
+    },
+    {
+      "source": "sppf.sppf2",
+      "target": "neck.cc3"
+    }
+  ]
+}

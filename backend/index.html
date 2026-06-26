@@ -3,406 +3,886 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>基于YOLOv8 加入StarBlock和MambaYOLO模块的目标检测</title>
+    <title>YOLOv8 + StarBlock & MambaYOLO | 模块化目标检测</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: linear-gradient(145deg, #f6f9fc 0%, #edf2f7 100%);
             font-family: 'Segoe UI', 'Roboto', 'Inter', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
+            min-height: 100vh; padding: 1.5rem;
         }
-
-        /* 主卡片容器 */
         .glass-card {
-            max-width: 820px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.94);
-            backdrop-filter: blur(0px);
-            border-radius: 2.5rem;
-            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.25), 0 8px 18px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-            transition: all 0.2s ease;
-            border: 1px solid rgba(255,255,255,0.6);
+            max-width: 1320px; width: 100%; margin: 0 auto;
+            background: rgba(255,255,255,0.96); border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25), 0 8px 18px rgba(0,0,0,0.05);
+            overflow: hidden; border: 1px solid rgba(255,255,255,0.6);
         }
 
+        /* ── 导航标签栏（位于 header 上方，无遮挡） ── */
+        .nav-tabs {
+            display: flex; gap: 4px;
+            background: linear-gradient(135deg, #1E2A5E 0%, #121e3c 100%);
+            padding: 0.8rem 1.5rem 0 1.5rem; flex-wrap: wrap;
+        }
+        .nav-tab {
+            padding: 10px 22px; border-radius: 14px 14px 0 0;
+            cursor: pointer; font-weight: 600; font-size: 0.88rem;
+            color: rgba(255,255,255,0.7); transition: all 0.2s;
+            display: flex; align-items: center; gap: 7px;
+            border: none; background: transparent;
+            white-space: nowrap;
+        }
+        .nav-tab:hover { color: white; background: rgba(255,255,255,0.08); }
+        .nav-tab.active {
+            color: #1E2A5E; background: rgba(255,255,255,0.96);
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+            font-weight: 700;
+        }
+
+        /* ── 页面容器 ── */
+        .page-container { background: #fff; }
+        .view-page { display: none; animation: fadeIn 0.25s ease-out; }
+        .view-page.active-page { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Header ── */
         .header {
             background: linear-gradient(135deg, #1E2A5E 0%, #121e3c 100%);
-            padding: 1.6rem 2rem;
-            color: white;
+            padding: 1.5rem 2rem; color: white;
         }
+        .header h1 { font-weight: 700; font-size: 1.7rem; display: flex; align-items: center; gap: 0.6rem; }
+        .header p { font-size: 0.9rem; opacity: 0.85; margin-top: 0.4rem; }
 
-        .header h1 {
-            font-weight: 600;
-            font-size: 1.8rem;
-            letter-spacing: -0.3px;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
+        /* ── 内容区 ── */
+        .content { padding: 1.8rem 2rem 2rem 2rem; }
 
-        .header h1:before {
-            content: "🎯";
-            font-size: 1.8rem;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-        }
-
-        .header p {
-            font-size: 0.9rem;
-            opacity: 0.85;
-            margin-top: 0.5rem;
-            font-weight: 400;
-        }
-
-        .content {
-            padding: 2rem 2rem 1.5rem 2rem;
-        }
-
-        /* 模型控制栏 — 双按钮组 */
+        /* ── 检测页面 ── */
         .model-control-bar {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            background: #f1f4f9;
-            padding: 0.8rem 1.2rem;
-            border-radius: 2rem;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.02), 0 2px 5px rgba(0,0,0,0.05);
+            display: flex; gap: 1.5rem; margin-bottom: 2rem;
+            background: #f1f4f9; padding: 0.9rem 1.5rem; border-radius: 2rem;
+            align-items: center; justify-content: space-between; flex-wrap: wrap;
         }
-        .model-buttons {
-            display: flex;
-            gap: 12px;
-        }
+        .model-buttons { display: flex; gap: 12px; }
         .ctrl-btn {
-            border: none;
-            padding: 0.55rem 1.3rem;
-            border-radius: 2rem;
-            font-weight: 600;
-            font-size: 0.85rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: none; padding: 0.6rem 1.5rem; border-radius: 2rem;
+            font-weight: 600; font-size: 0.85rem; cursor: pointer;
+            transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
         }
-        .ctrl-btn.start {
-            background: #10b981;
-            color: white;
-            border: none;
-        }
-        .ctrl-btn.start:hover {
-            background: #059669;
-            transform: translateY(-1px);
-        }
-        .ctrl-btn.stop {
-            background: #ef4444;
-            color: white;
-        }
-        .ctrl-btn.stop:hover {
-            background: #dc2626;
-            transform: translateY(-1px);
-        }
-        .ctrl-btn:active {
-            transform: translateY(1px);
-        }
+        .ctrl-btn.start { background: #10b981; color: white; }
+        .ctrl-btn.start:hover { background: #059669; }
+        .ctrl-btn.stop { background: #ef4444; color: white; }
+        .ctrl-btn.stop:hover { background: #dc2626; }
         .model-status {
-            font-size: 0.85rem;
-            background: #eef2ff;
-            padding: 0.3rem 1rem;
-            border-radius: 40px;
-            color: #1e293b;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-size: 0.85rem; background: #eef2ff; padding: 0.4rem 1.2rem;
+            border-radius: 40px; color: #1e293b; font-weight: 500;
+            display: flex; align-items: center; gap: 8px;
         }
         .status-led {
-            width: 10px;
-            height: 10px;
-            border-radius: 10px;
-            background-color: #9ca3af;
-            display: inline-block;
-            box-shadow: 0 0 2px rgba(0,0,0,0.2);
+            width: 10px; height: 10px; border-radius: 10px;
+            background-color: #9ca3af; display: inline-block;
         }
-        .status-led.active {
-            background-color: #10b981;
-            box-shadow: 0 0 6px #10b981;
-        }
-        .status-led.inactive {
-            background-color: #9ca3af;
-        }
-
-        /* 上传区域 */
+        .status-led.active { background-color: #10b981; box-shadow: 0 0 6px #10b981; }
         .upload-zone {
-            background: #fefefe;
-            border: 2px dashed #cbd5e1;
-            border-radius: 1.8rem;
-            padding: 1.8rem 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            margin-bottom: 1.8rem;
-            position: relative;
+            background: #fefefe; border: 2px dashed #cbd5e1; border-radius: 1.8rem;
+            padding: 2rem 1.5rem; text-align: center; cursor: pointer; transition: all 0.25s; margin-bottom: 1.8rem;
         }
-        .upload-zone:hover {
-            border-color: #3b82f6;
-            background: #f8fafd;
-            transform: scale(1.01);
-        }
-        .upload-icon {
-            font-size: 3rem;
-            margin-bottom: 0.6rem;
-        }
-        .upload-zone .title {
-            font-size: 1.2rem;
-            font-weight: 500;
-            color: #1e293b;
-        }
-        .upload-zone .sub {
-            font-size: 0.8rem;
-            color: #5b6e8c;
-            margin-top: 0.3rem;
-        }
+        .upload-zone:hover { border-color: #3b82f6; background: #f8fafd; }
+        .upload-icon { font-size: 3rem; margin-bottom: 0.6rem; }
+        .upload-zone .title { font-size: 1.2rem; font-weight: 500; color: #1e293b; }
+        .upload-zone .sub { font-size: 0.85rem; color: #5b6e8c; margin-top: 0.3rem; }
         .file-info {
-            margin-top: 0.8rem;
-            background: #eef2ff;
-            padding: 0.4rem 0.8rem;
-            border-radius: 40px;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.8rem;
-            color: #1e40af;
-            font-weight: 500;
+            margin-top: 0.8rem; background: #eef2ff; padding: 0.4rem 1rem;
+            border-radius: 40px; display: inline-flex; align-items: center; gap: 0.5rem;
+            font-size: 0.8rem; color: #1e40af;
         }
-        .preview-section {
-            background: #f1f5f9;
-            border-radius: 1.5rem;
-            padding: 1rem;
-            margin-bottom: 1.8rem;
-        }
+        .preview-section { background: #f1f5f9; border-radius: 1.5rem; padding: 1.2rem; margin-bottom: 1.8rem; }
         .preview-label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #334155;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+            color: #334155; margin-bottom: 12px;
         }
-        .image-preview-container {
-            display: flex;
-            justify-content: center;
-            background: #ffffff;
-            border-radius: 1.2rem;
-            padding: 1rem;
-        }
-        #uploadedPreview {
-            max-width: 100%;
-            max-height: 200px;
-            object-fit: contain;
-            border-radius: 1rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
+        .image-preview-container { display: flex; justify-content: center; background: #fff; border-radius: 1.2rem; padding: 1rem; }
+        #uploadedPreview { max-width: 100%; max-height: 240px; object-fit: contain; border-radius: 1rem; }
         .action-btn {
-            width: 100%;
-            background: linear-gradient(98deg, #1E2A5E 0%, #2d3a6e 100%);
-            border: none;
-            padding: 0.9rem 1.5rem;
-            border-radius: 2rem;
-            font-weight: 600;
-            font-size: 1rem;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 8px 16px -8px rgba(0, 0, 0, 0.2);
-            margin-bottom: 1.8rem;
+            width: 100%; background: linear-gradient(98deg, #1E2A5E 0%, #2d3a6e 100%);
+            border: none; padding: 1rem 1.5rem; border-radius: 2rem; font-weight: 600;
+            font-size: 1rem; color: white; cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 8px 16px -8px rgba(0,0,0,0.2); margin-bottom: 1.8rem;
         }
-        .action-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            background: linear-gradient(98deg, #2a3a70 0%, #1f2c58 100%);
-        }
-        .action-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .result-section {
-            background: #ffffffea;
-            border-radius: 1.5rem;
-            padding: 1.2rem;
-            border: 1px solid #e2e8f0;
+            background: #ffffffea; border-radius: 1.5rem; padding: 1.4rem; border: 1px solid #e2e8f0;
         }
         .result-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            color: #0f172a;
-            margin-bottom: 1rem;
-            border-left: 4px solid #3b82f6;
-            padding-left: 12px;
+            display: flex; align-items: center; gap: 8px; font-weight: 600;
+            color: #0f172a; margin-bottom: 1rem; border-left: 4px solid #3b82f6; padding-left: 14px;
         }
         .result-img-box {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #fef9f0;
-            min-height: 180px;
-            border-radius: 1.2rem;
+            display: flex; justify-content: center; align-items: center;
+            background: #fef9f0; min-height: 200px; border-radius: 1.2rem;
         }
-        #resultImg {
-            max-width: 100%;
-            max-height: 280px;
-            object-fit: contain;
-            border-radius: 1rem;
-            display: block;
+        #resultImg { max-width: 100%; max-height: 340px; object-fit: contain; border-radius: 1rem; }
+        .placeholder-result { color: #a0afc3; text-align: center; padding: 2rem; font-size: 0.95rem; }
+
+        /* ── 信息卡片 ── */
+        .info-card {
+            background: #ffffffd9; border-radius: 1.8rem; padding: 1.8rem;
+            margin-bottom: 1.5rem; box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+            border: 1px solid #eef2ff;
         }
-        .placeholder-result {
-            color: #a0afc3;
-            text-align: center;
-            padding: 2rem;
+        .info-card h3 {
+            font-size: 1.3rem; color: #1E2A5E; margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .info-card p { line-height: 1.65; color: #2c3e50; margin-bottom: 1rem; font-size: 1rem; }
+        .badge-list { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 1rem; }
+        .badge {
+            background: #eef2ff; padding: 6px 16px; border-radius: 40px;
+            font-size: 0.8rem; font-weight: 500; color: #1E2A5E;
+        }
+
+        /* ── 架构可视化画布 ── */
+        .arch-canvas-area {
+            background: #fefefe; position: relative; overflow: hidden;
+            min-height: 420px; height: 460px; border-radius: 1.2rem;
+            background-image: linear-gradient(#e2e8f0 1px, transparent 1px),
+                              linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px; border: 1px solid #e2e8f0; margin: 0.8rem 0;
+        }
+        #archSvgCanvas { display: block; width: 100%; height: 100%; min-height: 420px; cursor: grab; }
+        .arch-toolbar {
+            position: absolute; bottom: 10px; right: 10px;
+            background: rgba(255,255,255,0.95); border-radius: 40px;
+            padding: 4px 10px; display: flex; gap: 5px; align-items: center;
+            backdrop-filter: blur(4px); font-size: 0.7rem; z-index: 10;
+        }
+        .arch-toolbar button {
+            width: 26px; height: 26px; padding: 0; border-radius: 50%;
+            font-size: 0.9rem; font-weight: bold; line-height: 1; cursor: pointer;
+            background: #3b82f6; color: white; border: none; display: flex;
+            align-items: center; justify-content: center;
+        }
+        .arch-toolbar button:hover { background: #2563eb; }
+        .arch-toolbar .zoom-label { font-weight: 600; min-width: 36px; text-align: center; color: #1e293b; font-size: 0.72rem; }
+        .arch-selector {
+            display: flex; gap: 10px; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap;
+        }
+        .arch-selector select {
+            padding: 8px 16px; border-radius: 25px; border: 1px solid #cbd5e1;
+            font-size: 0.85rem; background: white; cursor: pointer; font-weight: 500;
+        }
+        .arch-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.72rem; margin-top: 0.5rem; }
+        .arch-legend span { display: flex; align-items: center; gap: 5px; }
+        .arch-legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+        /* ── 实验指标 ── */
+        .experiment-chart {
+            background: #f8fafc; border-radius: 1.2rem; padding: 1rem; margin-top: 1rem;
+            text-align: center; border: 1px solid #e2edff;
+        }
+        .metric-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+            gap: 1rem; margin: 1.5rem 0;
+        }
+        .metric-card {
+            background: white; border-radius: 1.2rem; padding: 1rem;
+            text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);
             font-size: 0.9rem;
         }
+
+        /* ── 实验页面：双列布局 ── */
+        .expr-two-col { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .expr-col { flex: 1; min-width: 280px; }
+        .expr-section-title {
+            font-size: 0.85rem; font-weight: 700; color: #334155;
+            margin-bottom: 0.6rem; padding-bottom: 0.4rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        /* 参数表 */
+        .param-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .param-table td {
+            padding: 8px 12px; border-bottom: 1px solid #f1f5f9;
+        }
+        .param-table .pkey {
+            font-weight: 600; color: #1E2A5E; width: 40%; background: #f8fafc;
+            font-family: monospace; font-size: 0.78rem;
+        }
+        .param-table .pval { color: #334155; font-weight: 500; }
+        /* 对比表格 */
+        .compare-table-wrap { overflow-x: auto; border-radius: 1rem; border: 1px solid #e2e8f0; }
+        .compare-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        .compare-table th {
+            background: #1E2A5E; color: white; padding: 10px 12px;
+            font-weight: 600; text-align: center; white-space: nowrap;
+            position: sticky; top: 0;
+        }
+        .compare-table td {
+            padding: 9px 12px; text-align: center; border-bottom: 1px solid #f1f5f9;
+        }
+        .compare-table tbody tr:hover { background: #f8fafd; }
+        .compare-table .best { color: #10b981; font-weight: 700; }
+        .compare-table .model-name { text-align: left; font-weight: 600; color: #1e293b; }
+        /* 图表区域 */
+        .chart-image-container {
+            background: #f8fafc; border-radius: 1rem; padding: 0.8rem;
+            text-align: center; border: 1px solid #e2e8f0; min-height: 200px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .chart-image-container img {
+            max-width: 100%; max-height: 380px; object-fit: contain;
+            border-radius: 0.5rem; cursor: zoom-in; transition: transform 0.2s;
+        }
+        .chart-image-container img:hover { transform: scale(1.02); }
+        /* 图片灯箱 */
+        .img-lightbox {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 2000; display: flex;
+            align-items: center; justify-content: center; cursor: zoom-out;
+        }
+        .img-lightbox img { max-width: 95vw; max-height: 95vh; object-fit: contain; }
+        /* 加载占位 */
+        .data-loading {
+            text-align: center; padding: 2rem; color: #94a3b8; font-size: 0.9rem;
+        }
+        .data-loading .mini-spinner {
+            width: 24px; height: 24px; border: 3px solid #e2e8f0;
+            border-top: 3px solid #3b82f6; border-radius: 50%;
+            animation: spin 0.7s linear infinite; margin: 0 auto 0.5rem;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ── Loading overlay ── */
         .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(4px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0.2s, opacity 0.2s;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1100; visibility: hidden; opacity: 0; transition: visibility 0.2s, opacity 0.2s;
         }
-        .loading-overlay.active {
-            visibility: visible;
-            opacity: 1;
-        }
+        .loading-overlay.active { visibility: visible; opacity: 1; }
         .loading-card {
-            background: white;
-            padding: 1.6rem 2rem;
-            border-radius: 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.3);
-            min-width: 200px;
+            background: white; padding: 1.8rem 2.2rem; border-radius: 2rem;
+            display: flex; flex-direction: column; align-items: center; gap: 1rem;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.3); min-width: 220px;
         }
         .spinner {
-            width: 44px;
-            height: 44px;
-            border: 4px solid #e2e8f0;
-            border-top: 4px solid #1E2A5E;
-            border-radius: 50%;
+            width: 44px; height: 44px; border: 4px solid #e2e8f0;
+            border-top: 4px solid #1E2A5E; border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .hidden {
-            display: none;
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none; }
         footer {
+            text-align: center; font-size: 0.75rem; color: #6c7a91;
+            padding: 1rem; border-top: 1px solid #e9edf2; margin-top: 0.3rem;
+        }
+
+        @media (max-width: 760px) {
+            body { padding: 0.5rem; }
+            .glass-card { max-width: 100%; border-radius: 1rem; }
+            .header { padding: 1rem; }
+            .header h1 { font-size: 1.2rem; }
+            .content { padding: 1rem; }
+            .nav-tab { padding: 8px 12px; font-size: 0.75rem; }
+            .arch-canvas-area { height: 320px; min-height: 300px; }
+        }
+        .markdown-export {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            margin: 1.3em 0 0.55em;
+            color: #0f172a;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        h2:first-child,
+        h3:first-child,
+        h4:first-child,
+        h5:first-child,
+        h6:first-child,
+        p:first-child,
+        ul:first-child,
+        ol:first-child,
+        blockquote:first-child,
+        pre:first-child,
+        .table-wrapper:first-child {
+            margin-top: 0;
+        }
+
+        h2 { font-size: 1.65rem; }
+        h3 { font-size: 1.35rem; }
+        h4 { font-size: 1.15rem; }
+        h5 { font-size: 1rem; }
+        h6 { font-size: 0.95rem; }
+
+        p,
+        ul,
+        ol,
+        blockquote,
+        pre,
+        hr,
+        figure,
+        .table-wrapper,
+        .katex-display,
+        .math-display-image {
+            margin: 0 0 1rem;
+        }
+
+        a {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        strong,
+        b {
+            font-weight: 700;
+        }
+
+        em,
+        i {
+            font-style: italic;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid #dbe2ea;
+        }
+
+        ul,
+        ol {
+            padding-left: 1.45rem;
+        }
+
+        li {
+            margin: 0.28rem 0;
+        }
+
+        li > p {
+            margin: 0 0 0.4rem;
+        }
+
+        li > ul,
+        li > ol {
+            margin-top: 0.4rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .contains-task-list,
+        .task-list-item {
+            list-style: none;
+        }
+
+        .task-list-item input[type="checkbox"] {
+            margin-right: 0.35rem;
+        }
+
+        blockquote {
+            border-left: 4px solid #2563eb;
+            background: #f8fafc;
+            color: #334155;
+            padding: 0.8rem 1rem;
+        }
+
+        code {
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            background: #f3f4f6;
+            border-radius: 4px;
+            padding: 0.15em 0.35em;
+            font-size: 0.94em;
+        }
+
+        pre {
+            background: #152043;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 14px 16px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            font-size: 0.96em;
+        }
+
+        th,
+        td {
+            border: 1px solid #d1d5db;
+            padding: 8px 10px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        thead th,
+        th {
+            background: #f8fafc;
+            font-weight: 700;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fbfdff;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .katex-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 0.25rem 0;
+        }
+
+        .mermaid {
+            margin: 1rem 0;
             text-align: center;
-            font-size: 0.7rem;
-            color: #6c7a91;
-            padding: 1rem 1rem 1.2rem;
-            border-top: 1px solid #e9edf2;
-            margin-top: 0.5rem;
+        }
+
+        .mermaid > svg,
+        .mermaid svg {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+        }
+
+        .math-inline-image {
+            display: inline-block;
+            max-width: 100%;
+        }
+
+        .math-display-image {
+            text-align: center;
+        }
+
+        .math-display-image img {
+            display: inline-block;
+        }
+
+        svg {
+            max-width: 100%;
         }
     </style>
 </head>
 <body>
-
 <div class="glass-card">
-    <div class="header">
-        <h1>YOLOv8 + StarBlock,MambaYOLO的目标检测</h1>
-        <p>启动/关闭 MyYOLO 模型 | 上传图片获得实时检测结果</p>
+    <!-- ── 导航标签栏（内嵌，无遮挡） ── -->
+    <div class="nav-tabs" id="navTabs">
+        <button class="nav-tab active" data-page="detect">📷 目标检测</button>
+        <button class="nav-tab" data-page="arch">🧠 近期论文</button>
+        <button class="nav-tab" data-page="about">⚙️ 项目介绍</button>
+        <button class="nav-tab" data-page="expr">📊 实验结果</button>
     </div>
 
-    <div class="content">
-        <!-- 模型控制区域：启用模型 / 关闭模型 + 状态显示 -->
-        <div class="model-control-bar">
-            <div class="model-buttons">
-                <button id="startModelBtn" class="ctrl-btn start">▶ 启动模型</button>
-                <button id="stopModelBtn" class="ctrl-btn stop">⏹️ 释放模型</button>
+    <!-- ── 多视图页面容器 ── -->
+    <div class="page-container">
+        <!-- 页面1: 目标检测 -->
+        <div id="detectPage" class="view-page active-page">
+            <div class="header">
+                <h1>🎯 YOLOv8 + StarBlock & MambaYOLO</h1>
+                <p>启动模型 · 上传图像 · 实时目标检测推理展示</p>
             </div>
-            <div class="model-status" id="modelStatusArea">
-                <span class="status-led" id="statusLed"></span>
-                <span id="modelStatusText">模型未加载</span>
-            </div>
-        </div>
-
-        <!-- 上传区域 -->
-        <div id="uploadZone" class="upload-zone">
-            <div class="upload-icon">📸</div>
-            <div class="title">点击或拖拽图片至此区域</div>
-            <div class="sub">支持 JPG, PNG, WEBP (最大 10MB)</div>
-            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/jpg" style="display: none;" />
-            <div id="fileNameDisplay" class="file-info hidden">
-                <span>📎</span> <span id="fileNameText"></span>
-            </div>
-        </div>
-
-        <!-- 本地预览区 -->
-        <div class="preview-section" id="previewSection" style="display: none;">
-            <div class="preview-label">
-                📋 原始图像
-            </div>
-            <div class="image-preview-container">
-                <img id="uploadedPreview" alt="预览图" style="max-width:100%; max-height:200px; object-fit:contain;">
-            </div>
-        </div>
-
-        <!-- 检测按钮 -->
-        <button id="runBtn" class="action-btn" disabled>
-            🚀 发送至后端检测
-        </button>
-
-        <!-- 检测结果 -->
-        <div class="result-section">
-            <div class="result-header">
-                🔍 目标检测结果
-            </div>
-            <div class="result-img-box" id="resultBox">
-                <img id="resultImg" style="display: none;" alt="检测结果" />
-                <div id="resultPlaceholder" class="placeholder-result">
-                    ✨ 模型启动后，上传图片点击检测即可显示结果
+            <div class="content">
+                <div class="model-control-bar">
+                    <div class="model-buttons">
+                        <button id="startModelBtn" class="ctrl-btn start">▶ 启动检测模型</button>
+                        <button id="stopModelBtn" class="ctrl-btn stop">⏹️ 释放模型</button>
+                    </div>
+                    <div class="model-status" id="modelStatusArea">
+                        <span class="status-led" id="statusLed"></span>
+                        <span id="modelStatusText">模型未加载</span>
+                    </div>
+                </div>
+                <div id="uploadZone" class="upload-zone">
+                    <div class="upload-icon">🖼️</div>
+                    <div class="title">点击或拖拽图片至此区域</div>
+                    <div class="sub">支持 JPG, PNG, WEBP (最大 10MB)</div>
+                    <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/jpg" style="display:none;">
+                    <div id="fileNameDisplay" class="file-info hidden">
+                        <span>📎</span> <span id="fileNameText"></span>
+                    </div>
+                </div>
+                <div class="preview-section" id="previewSection" style="display:none;">
+                    <div class="preview-label">📋 原始图像预览</div>
+                    <div class="image-preview-container">
+                        <img id="uploadedPreview" alt="预览图" style="max-width:100%;max-height:200px;object-fit:contain;">
+                    </div>
+                </div>
+                <button id="runBtn" class="action-btn" disabled>🚀 执行目标检测</button>
+                <div class="result-section">
+                    <div class="result-header">🔍 推理结果可视化</div>
+                    <div class="result-img-box" id="resultBox">
+                        <img id="resultImg" style="display:none;" alt="检测结果">
+                        <div id="resultPlaceholder" class="placeholder-result">✨ 请先启动模型，上传图片并点击检测按钮</div>
+                    </div>
                 </div>
             </div>
+            <footer>⚡ 后端API: FastAPI + YOLOv8改进版 | 集成StarBlock/MambaYOLO</footer>
+        </div>
+
+        <!-- 页面2: 近期论文 -->
+        <div id="archPage" class="view-page">
+            <div class="header">
+                <h1>📄 近期论文 & 核心架构</h1>
+                <p>StarBlock + MambaYOLO 前沿技术解读</p>
+            </div>
+            <div class="content">
+                <div class="info-card">
+                    <h3>✨ StarNet：星操作的高维映射</h3>
+                    <p>核心思想：通过简单的元素级乘法（Star Operation），将输入特征映射到极高维的非线性空间，而无需实际增加网络宽度。</p>
+                    <p>核函数视角：星操作等价于多项式核函数，通过跨通道特征对乘，在紧凑的低维空间中计算，却能隐式地实现高维特征表达。</p>
+                    <p>指数级维度增长：多层堆叠时，每层都使隐含维度复杂度呈指数增长，仅需几层即可达到“近似无限”的特征空间。</p>
+                    <p>高效设计：无需复杂注意力机制，在保持低延迟的同时获得强表达能力，特别适合轻量化网络。</p>
+                </div>
+                <div class="info-card">
+                    <h3>🌀 MambaYOLO：状态空间高效建模</h3>
+                    <p>核心思想：引入状态空间模型（SSM）替代Transformer的自注意力机制，以线性复杂度实现对长距离依赖的高效建模。</p>
+                    <p>突破二次复杂度瓶颈：传统自注意力复杂度为O(n²)，SSM仅为O(n)，大幅降低计算负担。</p>
+                    <p>RG Block设计：采用多分支门控结构，弥补SSM在局部特征建模和图像定位能力上的不足。</p>
+                    <p>无需预训练：不像Transformer需要在大规模数据集上预训练，MambaYOLO可直接从头训练。</p>
+                </div>
+            </div>
+            <footer>📖 引用格式: arXiv:2506.XXXXX | 代码开源在GitHub</footer>
+        </div>
+
+        <!-- 页面3: 项目介绍（含架构可视化） -->
+        <div id="aboutPage" class="view-page">
+            <div class="header">
+                <h1>📌 关于本项目</h1>
+                <p>YOLOv8 + StarBlock & MambaYOLO 创新实现与演示平台</p>
+            </div>
+            <div class="content">
+                <!-- 模型架构可视化 -->
+                <div class="info-card">
+                    <h3>🏗️ 模型架构可视化</h3>
+                    <div class="arch-selector">
+                        <label style="font-weight:600;font-size:0.85rem;">选择模型：</label>
+                        <select id="archModelSelect">
+                            <option value="YOLOv8-Net.json">YOLOv8 标准架构</option>
+                            <option value="StarYOLO-Net.json" selected>StarYOLO 架构</option>
+                            <option value="ManbaYOLO-Net.json">ManbaYOLO 架构</option>
+                        </select>
+                        <span style="font-size:0.7rem;color:#64748b;">🖱️ 滚轮缩放 | 拖拽平移</span>
+                    </div>
+                    <div class="arch-legend">
+                        <span><span class="dot" style="background:#3b82f6;"></span> L0 根层</span>
+                        <span><span class="dot" style="background:#d97706;"></span> L1 子层</span>
+                        <span><span class="dot" style="background:#16a34a;"></span> L2 孙层</span>
+                        <span><span class="dot" style="background:#db2777;"></span> L3+ 深层</span>
+                    </div>
+                    <div class="arch-canvas-area" id="archCanvasContainer">
+                        <svg id="archSvgCanvas"></svg>
+                        <div class="arch-toolbar">
+                            <button id="archZoomOutBtn" title="缩小">−</button>
+                            <span class="zoom-label" id="archZoomLabel">100%</span>
+                            <button id="archZoomInBtn" title="放大">+</button>
+                            <button id="archZoomResetBtn" title="重置" style="font-size:0.55rem;width:auto;border-radius:20px;padding:2px 8px;">⟳</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- StarNetBlock 架构图 -->
+                <div class="info-card" style="text-align:center;">
+                    <h3>🧩 StarNetBlock 架构图</h3>
+                    <img src="resource/image/img.png" alt="StarNetBlock Architecture"
+                         style="max-width:100%; border-radius:1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08);"
+                         title="StarNetBlock 架构图">
+                </div>
+                <!-- 项目信息 -->
+                <div class="info-card">
+                    <h3>🎓 项目代码解析</h3>
+                    <div class="markdown-export">
+                        <h1>train_with_frozen.py 解析</h1>
+                        <hr>
+                        <h2>整体目标</h2>
+                        <p>修改 YOLO 架构后（如替换 backbone 模块），标准 <code>.pt</code> 文件因结构不匹配无法加载。</p>
+                        <p>该脚本通过<strong>层映射表</strong>从预训练权重中<strong>选择性加载</strong>兼容层，然后<strong>冻结已加载层</strong>，只训练未映射的随机初始化层。</p>
+                        <hr>
+                        <h2>整体流程</h2>
+                        <pre><code>1. 加载映射表          load_mapping("res/mapping/yolov8n_yolov8nmod.json")
+                      从 JSON 读取层对应关系 {pretrained_idx: target_idx}
+
+2. 从 YAML 构建模型    YOLO("ultralytics/cfg/models/yolov8nmod.yaml")
+                      创建 DetectionModel → 所有参数随机初始化
+
+3. 选择性加载权重       build_loaded_state_dict(src_sd, target_sd, mapping)
+                      → model.model.load_state_dict(loaded_dict, strict=False)
+
+4. 开始训练            model.train(freeze=[冻结层列表], ...)
+                      已映射的层（有预训练权重）冻结，未映射的层参与更新
+                        </code></pre>
+                        <p>正常训练结束，模型保存于 <code>runs/train/{model_name}-{timestamp}/</code></p>
+                        <hr>
+                        <h2>映射表 Mapping</h2>
+                        <p><strong>为什么需要映射表：</strong> YOLO 模型的 state_dict 中参数名为 <code>model.{层索引}.{子模块}.{参数名}</code>，当目标模型与预训练模型的层结构不同时（如 C2f 换成 StarNetBlock），层索引和参数 shape 都可能变化，需要手动指定对应关系。</p>
+                        <p><strong>路径：</strong> <code>res/mapping/{pretrained}_{model}.json</code></p>
+                        <p><strong>格式：</strong> <code>{"pretrained_layer_idx": "target_layer_idx"}</code></p>
+                        <p><strong>加载函数：</strong> <code>script/train_with_frozen.py:33-43</code></p>
+                        <pre><code class="language-python">def load_mapping(mapping_path):
+    mapping = {}
+    for k, v in raw.items():
+        sk = int(k.replace("model.", ""))  # 统一去除前缀
+        tv = int(v.replace("model.", ""))
+        mapping[sk] = tv
+    return mapping
+                        </code></pre>
+                        <p><strong>映射示例（yolov8n_yolov8nmod.json）：</strong></p>
+                        <pre><code>"model.0" → "model.0"
+"model.1" → "model.1"
+...（第2~7层 全等映射）...
+
+"model.9" → "model.9"     // 后续层兼容
+"model.10" → "model.10"
+                        </code></pre>
+                        <p>"model.8" 未出现在映射表中，所以 <code>yolovn.pt</code> 的第八层不会被加载进模型中，被丢弃。</p>
+                        <p><strong>效果：</strong> 映射的层加载预训练权重，未映射的层保持随机初始化</p>
+                        <hr>
+                        <h2>build_loaded_state_dict — 选择性权重加载</h2>
+                        <p><strong>问题：</strong> 映射表只存了层索引映射，但 state_dict 中是每个参数张量的独立 key，格式为 <code>model.{层索引}.{子模块}.{参数名}</code>。同一层下可能有 weight、bias、running_mean、running_var 等多个参数。</p>
+                        <p><strong>函数签名：</strong> <code>script/train_with_frozen.py:46-68</code></p>
+                        <pre><code class="language-python">def build_loaded_state_dict(src_sd, target_sd, mapping):
+    """返回 (loaded_dict, mismatches, not_founds)"""
+                        </code></pre>
+                        <p><strong>搬运规则：</strong></p>
+                        <pre><code>model.{src_idx}.{sub}.{param}  →  model.{tgt_idx}.{sub}.{param}
+
+例：预训练 model.8.cv1.conv.weight
+    若 mapping 中有 8→9，则搬运到 model.9.cv1.conv.weight
+                        </code></pre>
+                        <p><strong>处理三种情况：</strong></p>
+                        <div class="table-wrapper"><table><thead><tr><th>结果</th><th>含义</th><th>后续处理</th></tr></thead><tbody><tr><td><code>loaded_dict</code></td><td>目标 key 存在且 shape 一致</td><td>加入字典，后续注入模型</td></tr><tr><td><code>mismatches</code></td><td>目标 key 存在但 shape 不匹配</td><td>打印警告，跳过</td></tr><tr><td><code>not_founds</code></td><td>目标 key 不存在</td><td>打印警告，跳过</td></tr></tbody></table></div>
+                        <p><strong>注入模型：</strong> <code>script/train_with_frozen.py:224</code></p>
+                        <pre><code class="language-python">model.model.load_state_dict(loaded_dict, strict=False)
+                        </code></pre>
+                        <p>使用 <code>strict=False</code>，只加载匹配的参数，其他参数保持随机初始化。</p>
+                        <hr>
+<!--                        <h2>避免 model.train() 丢弃权重</h2>-->
+<!--                        <h3>问题根因</h3>-->
+<!--                        <p>从 YAML 构建模型时，<code>YOLO.__init__</code> 内部走 <code>_new()</code> 路径，<code>self.ckpt</code> 设为 <code>None</code>：</p>-->
+<!--                        <pre><code class="language-python"># ultralytics/engine/model.py:149-150-->
+<!--if Path(model).suffix in {".yaml", ".yml"}:-->
+<!--    self._new(model, task=task, verbose=verbose)  # self.ckpt = None-->
+<!--                        </code></pre>-->
+<!--                        <p>而 <code>model.train()</code> 内部依赖 <code>self.ckpt</code> 决定是否保留已加载的权重：</p>-->
+<!--                        <pre><code class="language-python"># ultralytics/engine/model.py:656-657-->
+<!--if not args.get("resume"):-->
+<!--    self.trainer.model = self.trainer.get_model(-->
+<!--        weights=self.model if self.ckpt else None,  # ← 关键-->
+<!--        cfg=self.model.yaml-->
+<!--    )-->
+<!--                        </code></pre>-->
+<!--                        <ul>-->
+<!--                        <li><code>self.ckpt = None</code> → <code>weights = None</code> → <code>get_model()</code> 新建 DetectionModel 并随机初始化 → 之前注入的权重全部丢失</li>-->
+<!--                        <li><code>self.ckpt</code> 为 truthy → <code>weights = self.model</code> → 已注入的权重随模型传入</li>-->
+<!--                        </ul>-->
+<!--                        <h3>解决方案</h3>-->
+<!--                        <pre><code class="language-python"># script/train_with_frozen.py:237-->
+<!--model.ckpt = {"epoch": 0}   # 设为非空字典，使 truthy 判断通过-->
+<!--                        </code></pre>-->
+                        <h3>完整权重传递链</h3>
+                        <p>下面展示从 YAML 构建到正式训练开始的全过程：</p>
+                        <pre><code>YOLO("yolov8nmod.yaml")                  # 第206行，self.ckpt = None
+  └─ _new() → DetectionModel(cfg)        # 新建模型，随机初始化
+  └─ self.model = DetectionModel         # model 属性指向新建的模型
+    ↓
+model.model.load_state_dict(loaded_dict, strict=False)   # 第224行，手动注入映射表权重
+  └─ 此时 self.model 内部已有部分层为预训练权重、部分层为随机初始化
+    ↓
+model.ckpt = {"epoch": 0}                # 第237行，欺骗 train()
+    ↓
+model.train(freeze=[0,1,2,...], ...)     # 第258行
+  └─ Model.train() 检查 self.ckpt        # model.py:657
+  └─ self.ckpt 为 truthy → weights = self.model
+  └─ DetectionTrainer.get_model(          # detect/train.py:86-91
+         weights=self.model,              # 传入已注入权重的模型
+         cfg=self.model.yaml)
+      └─ DetectionModel(cfg)              # 新建一个 DetectionModel（随机初始化）
+      └─ if weights:                      # weights 不为 None
+           model.load(weights)            # tasks.py:243-256
+             └─ csd = weights.state_dict()
+             └─ intersect_dicts(csd, target_sd)  # 取交集（key+shape都匹配）
+             └─ load_state_dict(csd, strict=False)  # 非严格加载
+  └─ self.model = self.trainer.model      # 替换为训练器中的模型
+    ↓
+trainer.train()                           # 进入实际训练
+  └─ _setup_train()
+  └─ _do_train()
+                        </code></pre>
+                        <p>传递链中的关键点：手动注入的权重 → <code>self.model</code> → <code>model.load(weights)</code> → <code>intersect_dicts</code> 过滤 → 最终进入训练模型。未映射的层在新建 DetectionModel 时仍为随机初始化。</p>
+                        <h3>辅助参数 pretrained=False</h3>
+                        <p>训练时传入 <code>pretrained=False</code>，防止 ultralytics 再次从 .pt 文件加载权重：</p>
+                        <pre><code class="language-python"># ultralytics/engine/trainer.py:548-549
+elif isinstance(self.args.pretrained, (str, Path)):
+    weights, _ = attempt_load_one_weight(self.args.pretrained)
+                        </code></pre>
+                        <p><code>False</code> 不是 str 或 Path，所以跳过。避免与已手动注入的权重冲突。</p>
+                        <hr>
+                        <h2>冻结策略</h2>
+                        <p>已映射的层（加载了预训练权重）自动冻结，未映射的层（随机初始化）参与训练。</p>
+                        <p><strong>在 train_with_frozen.py 中计算冻结列表：</strong> <code>script/train_with_frozen.py:240-242</code></p>
+                        <pre><code class="language-python">mapped_tgt_idxs = set(mapping.values())       # 目标模型中被映射的层索引
+freeze_list = sorted(mapped_tgt_idxs)          # 排序后传给 ultralytics
+                        </code></pre>
+                        <p><strong>在 ultralytics 中执行冻结：</strong> <code>ultralytics/engine/trainer.py:232-251</code></p>
+                        <pre><code class="language-python">freeze_list = self.args.freeze                 # 接收 [0, 1, 2, 7, ...]
+freeze_layer_names = [f"model.{x}." for x in freeze_list] + [".dfl"]
+
+for k, v in self.model.named_parameters():
+    if any(x in k for x in freeze_layer_names):
+        v.requires_grad = False                # 不计算梯度
+                        </code></pre>
+                        <p><strong>效果：</strong> <code>requires_grad = False</code> 的参数在反向传播中不产生梯度，也不会出现在 <code>build_optimizer</code> 的 <code>param_groups</code> 中，完全不参与优化器更新。</p>
+                        <p><strong>可训练参数量统计：</strong> <code>script/train_with_frozen.py:245-248</code></p>
+                        <pre><code class="language-python">learnable_params = sum(
+    p.numel() for n, p in model.model.named_parameters()
+    if not any(f"model.{i}." in n for i in freeze_list)
+)
+                        </code></pre>
+                        <hr>
+                        <h2>Resume — 参数继承与覆盖</h2>
+                        <h3>触发方式</h3>
+                        <pre><code class="language-bash">conda run -n yolov8 python script/train_with_frozen.py \
+--resume staryolon-100 --epochs 150 --lr 1e-4
+                        </code></pre>
+                        <h3>参数覆盖流程</h3>
+                        <pre><code>args.yaml（上次训练保存的全部超参数）
+  │
+  ├─ 删除不兼容的键：resume、model、save_dir、mode    （第128行）
+  │
+  ├─ CLI 参数覆盖，带键名映射：                      （第144-163行）
+  │   --dataset    → data（拼接为 yaml 路径）
+  │   --lr         → lr0
+  │   --resume_freeze → freeze
+  │   --epochs     → epochs（同名直覆盖）
+  │   --batch      → batch（同名直覆盖）
+  │
+  ├─ 被屏蔽的 CLI 参数：
+  │   --resume  → 跳过（第148行）
+  │   --pt      → 跳过
+  │   --model   → 跳过
+  │
+  └─ force 保存路径：
+      project = runs/train
+      name    = {原名}-{时间戳}   ← 避免覆盖上次结果
+                        </code></pre>
+                        <h3>实际行为：热启动</h3>
+                        <p><code>resume</code> 键被显式删除，<code>model.train(**resume_args)</code> 不带 resume 标志。</p>
+                        <pre><code class="language-python">model = YOLO("runs/train/staryolon-100/weights/last.pt")   # 第172行
+model.train(**resume_args)    # resume_args 中无 resume 字段
+                        </code></pre>
+                        <p>ultralytics 的 <code>check_resume()</code> 不触发（<code>self.args.resume</code> 为假），<code>resume_training()</code> 不执行（<code>self.resume</code> 为 False，<code>ckpt</code> 为 None）。结果是：</p>
+                        <p><strong>保住的：</strong></p>
+                        <ul>
+                        <li>模型权重 — <code>YOLO(last.pt)</code> 设置了 <code>self.ckpt</code>，<code>model.train()</code> 的 truthy 检查通过，权重正常传递</li>
+                        </ul>
+                        <p><strong>不恢复的（热启动策略）：</strong></p>
+                        <ul>
+                        <li><code>start_epoch</code> 从 0 开始</li>
+                        <li>optimizer 动量新建（<code>build_optimizer</code> 从头创建）</li>
+                        <li>EMA 权重新建（<code>ModelEMA(self.model)</code> 从头创建）</li>
+                        <li>LR 调度从头退火（<code>_setup_scheduler</code> 从头开始）</li>
+                        </ul>
+                        <p>这是有意为之：改变训练参数（lr、epochs、freeze 等）时，旧优化器动量会与新的超参数组合产生干扰，热启动可以避免这一问题。</p>
+                        <hr>
+                        <h2>训练技术栈</h2>
+                        <p>分三层：</p>
+                        <pre><code>train_with_frozen.py（第 179-283 行）
+  │  映射加载 → load_mapping()
+  │  权重注入 → build_loaded_state_dict() + load_state_dict()
+  │  欺骗    → model.ckpt = {"epoch": 0}
+  │  冻结    → model.train(freeze=freeze_list, ...)
+  │
+  └─ YOLO() / DetectionTrainer（ultralytics 库）
+       │  YOLO.__init__       → 构建 DetectionModel
+       │  DetectionTrainer    → 训练管线
+       │
+       ├─ _setup_train()     训练准备
+       │   ├─ setup_model()       模型加载
+       │   ├─ freeze 层设置        requires_grad = False
+       │   ├─ check_amp()         AMP 可用性检测
+       │   ├─ get_dataloader()    DataLoader 构建
+       │   ├─ build_optimizer()   优化器（AdamW 等）
+       │   ├─ _setup_scheduler()  LR 调度（cosine/linear）
+       │   ├─ ModelEMA()          滑动平均
+       │   └─ resume_training()   恢复训练（热启动时不生效）
+       │
+       └─ _do_train()         训练循环
+            ├─ torch.amp.autocast         混合精度前向
+            ├─ model(batch) → loss        前向传播 + 损失计算
+            ├─ scaler.scale(loss).backward()  反向传播
+            ├─ scaler.step(optimizer)          参数更新
+            ├─ ema.update(model)               滑动平均更新
+            └─ scheduler.step()                学习率调整
+                        </code></pre>
+                        <p>底层由 PyTorch 自动求导引擎驱动，ultralytics 在其上封装了完整的训练管线，train_with_frozen.py 在其上再叠加了架构变更场景下的选择性权重加载和分层冻结。</p>
+                    </div>
+                </div>
+            </div>
+            <footer>© 2025 智能视觉课题组 | 开放非商业使用</footer>
+        </div>
+
+        <!-- 页面4: 实验结果 -->
+        <div id="exprPage" class="view-page">
+            <div class="header">
+                <h1>📊 实验设计与评估指标</h1>
+                <p>消融实验 & 基准对比分析 · 数据实时读取</p>
+            </div>
+            <div class="content">
+                <!-- 实验参数 + 训练过程图 -->
+                <div class="info-card">
+                    <h3>🧪 实验参数设置 & 训练过程</h3>
+                    <div class="expr-two-col">
+                        <div class="expr-col">
+                            <div class="expr-section-title">📋 训练配置（实时读取 expr_data.json）</div>
+                            <div id="exprParamsContainer">
+                                <div class="data-loading"><div class="mini-spinner"></div>加载实验参数...</div>
+                            </div>
+                        </div>
+                        <div class="expr-col">
+                            <div class="expr-section-title">📈 训练过程记录（实时读取 expr_results.png）</div>
+                            <div class="chart-image-container" id="exprChartContainer">
+                                <div class="data-loading"><div class="mini-spinner"></div>加载训练图表...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模型指标对比 -->
+                <div class="info-card">
+                    <h3>📊 模型指标结果对比（实时读取 result_show.xlsx）</h3>
+                    <div id="exprCompareContainer">
+                        <div class="data-loading"><div class="mini-spinner"></div>加载对比数据...</div>
+                    </div>
+                </div>
+            </div>
+            <footer>🔬 消融实验基于单卡 RTX GeForce 4060 完成 | 数据开源可复现</footer>
         </div>
     </div>
-    <footer>
-        ⚡ 前后端联动 | 启动模型后可用，释放模型可节省显存
-    </footer>
 </div>
 
-<!-- 全局loading -->
 <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-card">
         <div class="spinner"></div>
@@ -411,288 +891,586 @@
 </div>
 
 <script>
-    (function() {
-        // DOM 元素
-        const uploadZone = document.getElementById('uploadZone');
-        const fileInput = document.getElementById('fileInput');
-        const fileNameDisplay = document.getElementById('fileNameDisplay');
-        const fileNameText = document.getElementById('fileNameText');
-        const previewSection = document.getElementById('previewSection');
-        const uploadedPreview = document.getElementById('uploadedPreview');
-        const runBtn = document.getElementById('runBtn');
-        const resultImg = document.getElementById('resultImg');
-        const resultPlaceholder = document.getElementById('resultPlaceholder');
-        const loadingOverlay = document.getElementById('loadingOverlay');
+(function() {
+    // ═══════════ 检测页面元素 ═══════════
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    const fileNameText = document.getElementById('fileNameText');
+    const previewSection = document.getElementById('previewSection');
+    const uploadedPreview = document.getElementById('uploadedPreview');
+    const runBtn = document.getElementById('runBtn');
+    const resultImg = document.getElementById('resultImg');
+    const resultPlaceholder = document.getElementById('resultPlaceholder');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const startModelBtn = document.getElementById('startModelBtn');
+    const stopModelBtn = document.getElementById('stopModelBtn');
+    const statusLed = document.getElementById('statusLed');
+    const modelStatusText = document.getElementById('modelStatusText');
 
-        // 模型控制元素
-        const startModelBtn = document.getElementById('startModelBtn');
-        const stopModelBtn = document.getElementById('stopModelBtn');
-        const statusLed = document.getElementById('statusLed');
-        const modelStatusText = document.getElementById('modelStatusText');
+    // ═══════════ 页面导航 ═══════════
+    const navTabs = document.querySelectorAll('.nav-tab');
+    const pages = {
+        detect: document.getElementById('detectPage'),
+        arch: document.getElementById('archPage'),
+        about: document.getElementById('aboutPage'),
+        expr: document.getElementById('exprPage')
+    };
 
-        // 状态管理
-        let currentFile = null;
-        let isModelReady = false;      // 前端缓存模型就绪标志（用于UI交互）
+    function switchPage(pageId) {
+        Object.values(pages).forEach(p => p && p.classList.remove('active-page'));
+        if (pages[pageId]) pages[pageId].classList.add('active-page');
+        navTabs.forEach(t => t.classList.toggle('active', t.dataset.page === pageId));
+        // 切换到项目介绍页时渲染架构
+        if (pageId === 'about') setTimeout(renderArchitecture, 100);
+        // 切换到实验结果页时加载实验数据
+        if (pageId === 'expr') setTimeout(loadExperimentData, 100);
+    }
 
-        // 辅助函数: 显示/隐藏loading
-        function showLoading(show, customText = "AI 模型推理中，请稍后...") {
-            const loadingTextElem = document.querySelector('#loadingOverlay .loading-text');
-            if (loadingTextElem && customText) loadingTextElem.innerText = customText;
-            if (show) {
-                loadingOverlay.classList.add('active');
-            } else {
-                loadingOverlay.classList.remove('active');
-                // 恢复默认文案
-                if (loadingTextElem) loadingTextElem.innerText = "处理中，请稍后...";
-            }
+    navTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const page = tab.dataset.page;
+            if (page && pages[page]) switchPage(page);
+        });
+    });
+
+    // ═══════════ 检测功能 ═══════════
+    let currentFile = null, isModelReady = false;
+
+    function showLoading(show, txt) {
+        const el = document.querySelector('#loadingOverlay .loading-text');
+        if (el && txt) el.innerText = txt;
+        loadingOverlay.classList.toggle('active', show);
+    }
+
+    function updateModelUI(loaded) {
+        isModelReady = loaded;
+        if (loaded) {
+            statusLed.className = 'status-led active';
+            modelStatusText.innerText = '模型已加载 (GPU/CPU)';
+        } else {
+            statusLed.className = 'status-led';
+            modelStatusText.innerText = '模型未加载';
+            runBtn.disabled = true;
         }
+        if (loaded && currentFile) runBtn.disabled = false;
+    }
 
-        // 更新模型状态UI (根据后端返回的真实情况)
-        function updateModelUI(loaded) {
-            isModelReady = loaded;
-            if (loaded) {
-                statusLed.className = "status-led active";
-                modelStatusText.innerText = "模型已加载 (GPU/CPU)";
-                // 如果已有选中的图片，启用检测按钮
-                updateButtonState();
-            } else {
-                statusLed.className = "status-led inactive";
-                modelStatusText.innerText = "模型未加载";
-                // 模型未加载时，检测按钮强制禁用
-                runBtn.disabled = true;
-            }
-        }
+    function handleFileSelected(file) {
+        if (!file || !file.type.startsWith('image/')) { alert('请选择图片文件'); return; }
+        if (file.size > 10*1024*1024) { alert('文件超过10MB'); return; }
+        currentFile = file;
+        fileNameText.innerText = file.name;
+        fileNameDisplay.classList.remove('hidden');
+        previewSection.style.display = 'block';
+        const reader = new FileReader();
+        reader.onload = e => { uploadedPreview.src = e.target.result; };
+        reader.readAsDataURL(file);
+        if (resultImg.src && resultImg.src.startsWith('blob:')) URL.revokeObjectURL(resultImg.src);
+        resultImg.src = ''; resultImg.style.display = 'none';
+        if (resultPlaceholder) resultPlaceholder.style.display = 'block';
+        if (isModelReady) runBtn.disabled = false;
+    }
 
-        // 更新检测按钮可用性：模型已加载 && 有图片
-        function updateButtonState() {
-            if (isModelReady && currentFile) {
-                runBtn.disabled = false;
-            } else {
-                runBtn.disabled = true;
-            }
-        }
+    function displayResultImage(blob) {
+        if (resultImg.src && resultImg.src.startsWith('blob:')) URL.revokeObjectURL(resultImg.src);
+        resultImg.src = URL.createObjectURL(blob);
+        resultImg.style.display = 'block';
+        if (resultPlaceholder) resultPlaceholder.style.display = 'none';
+    }
 
-        // 清除之前的结果图片
-        function clearResultImage() {
-            if (resultImg.src) {
-                if (resultImg.src.startsWith('blob:')) {
-                    URL.revokeObjectURL(resultImg.src);
-                }
-                resultImg.src = '';
-            }
-            resultImg.style.display = 'none';
-            resultPlaceholder.style.display = 'block';
-        }
-
-        // 显示结果图片
-        function displayResultImage(blob) {
-            if (resultImg.src && resultImg.src.startsWith('blob:')) {
-                URL.revokeObjectURL(resultImg.src);
-            }
-            const objectURL = URL.createObjectURL(blob);
-            resultImg.src = objectURL;
-            resultImg.style.display = 'block';
-            resultPlaceholder.style.display = 'none';
-        }
-
-        // 处理文件选择
-        function handleFileSelected(file) {
-            if (!file) return;
-            if (!file.type.startsWith('image/')) {
-                alert('请选择一个有效的图片文件 (jpeg, png, webp 等)');
-                return;
-            }
-            if (file.size > 10 * 1024 * 1024) {
-                alert('文件大小超过 10MB，请压缩后重试');
-                return;
-            }
-
-            currentFile = file;
-            fileNameText.innerText = file.name;
-            fileNameDisplay.classList.remove('hidden');
-            previewSection.style.display = 'block';
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                uploadedPreview.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-            clearResultImage();
-            updateButtonState();
-        }
-
-        function openFileDialog() {
-            fileInput.click();
-        }
-
-        // 后端接口调用封装 (通用post json)
-        async function callModelAction(endpoint, actionName) {
-            showLoading(true, `${actionName}中，请稍后...`);
-            try {
-                const response = await fetch(`http://localhost:8000${endpoint}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    return { success: true, message: data.status || data.detail || "操作成功" };
-                } else {
-                    throw new Error(data.detail || `请求失败 (${response.status})`);
-                }
-            } catch (err) {
-                console.error(`${actionName}错误:`, err);
-                alert(`${actionName}失败: ${err.message}\n请确保后端服务运行在 http://localhost:8000`);
-                return { success: false, message: err.message };
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        async function fetchModelStatus() {
-            const resp = await fetch(
-                'http://localhost:8000/model_status'
-            );
-
+    async function callModel(endpoint, actionName) {
+        showLoading(true, actionName + '中...');
+        try {
+            const resp = await fetch('http://localhost:8000' + endpoint, { method:'POST', headers:{'Content-Type':'application/json'} });
             const data = await resp.json();
+            if (resp.ok) return { success:true, message: data.status || data.detail || '成功' };
+            throw new Error(data.detail || '请求失败 (' + resp.status + ')');
+        } catch(err) {
+            alert(actionName + '失败: ' + err.message + '\n请确保后端运行在 http://localhost:8000');
+            return { success:false, message: err.message };
+        } finally { showLoading(false); }
+    }
 
-            updateModelUI(data.loaded);
+    async function fetchModelStatus() {
+        try {
+            const resp = await fetch('http://localhost:8000/model_status');
+            updateModelUI((await resp.json()).loaded);
+        } catch(e) { updateModelUI(false); }
+    }
+
+    async function startModel() {
+        if (isModelReady) { alert('模型已加载'); return; }
+        const r = await callModel('/start_model', '启动模型');
+        updateModelUI(r.success);
+    }
+    async function stopModel() {
+        if (!isModelReady) { alert('模型未加载'); return; }
+        const r = await callModel('/stop_model', '释放模型');
+        if (r.success) { updateModelUI(false); alert('模型已释放'); }
+    }
+    async function runDetection() {
+        if (!isModelReady || !currentFile) return;
+        const fd = new FormData(); fd.append('image', currentFile);
+        showLoading(true, '目标检测推理中...');
+        runBtn.disabled = true;
+        try {
+            const resp = await fetch('http://localhost:8000/process', { method:'POST', body:fd });
+            if (!resp.ok) throw new Error('后端错误 (' + resp.status + ')');
+            displayResultImage(await resp.blob());
+        } catch(err) {
+            alert('检测失败: ' + err.message);
+        } finally {
+            showLoading(false);
+            if (isModelReady && currentFile) runBtn.disabled = false;
         }
+    }
 
-        // 启动模型
-        async function startModel() {
-            if (isModelReady) {
-                alert("模型已经处于加载状态，无需重复启动");
-                return;
+    fileInput.addEventListener('change', e => { if (e.target.files?.length) handleFileSelected(e.target.files[0]); fileInput.value=''; });
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.borderColor='#3b82f6'; });
+    uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor='#cbd5e1'; });
+    uploadZone.addEventListener('drop', e => {
+        e.preventDefault(); uploadZone.style.borderColor='#cbd5e1';
+        if (e.dataTransfer.files?.length) handleFileSelected(e.dataTransfer.files[0]);
+    });
+    startModelBtn.addEventListener('click', startModel);
+    stopModelBtn.addEventListener('click', stopModel);
+    runBtn.addEventListener('click', runDetection);
+    fetchModelStatus();
+    window.addEventListener('beforeunload', () => { if (resultImg.src?.startsWith('blob:')) URL.revokeObjectURL(resultImg.src); });
+    setInterval(() => { if (pages.detect.classList.contains('active-page')) fetchModelStatus(); }, 8000);
+
+    // ══════════════════════════════════════════════════
+    // 架构可视化渲染引擎（从 net-Editor.html 移植）
+    // ══════════════════════════════════════════════════
+    const archSvg = document.getElementById('archSvgCanvas');
+    const archContainer = document.getElementById('archCanvasContainer');
+    let archNodes = [], archLinks = [];
+    let archZoom = 0.55, archPanX = 0, archPanY = 0;
+    const ZOOM_MIN = 0.15, ZOOM_MAX = 4.0, ZOOM_STEP = 0.08;
+    let archLoaded = false;
+
+    // 层级配色
+    const LEVEL_STYLES = [
+        { fill:'#f0f4ff', stroke:'#3b82f6', text:'#1e293b', conn:'#93c5fd', rx:12, sw:2.5, bold:true },
+        { fill:'#fffbeb', stroke:'#d97706', text:'#78350f', conn:'#fcd34d', rx:10, sw:2.0, bold:false },
+        { fill:'#f0fdf4', stroke:'#16a34a', text:'#14532d', conn:'#86efac', rx:8,  sw:1.8, bold:false },
+        { fill:'#fdf2f8', stroke:'#db2777', text:'#831843', conn:'#f9a8d4', rx:7,  sw:1.5, bold:false },
+        { fill:'#f5f3ff', stroke:'#7c3aed', text:'#3b0764', conn:'#c4b5fd', rx:6,  sw:1.5, bold:false },
+    ];
+
+    function archGetNode(id) { return archNodes.find(n => n.id === id); }
+    function archGetLevel(nodeId) {
+        let lv = 0, cur = archGetNode(nodeId);
+        while (cur && cur.parentId) { lv++; cur = archGetNode(cur.parentId); }
+        return lv;
+    }
+    function archGetChildren(pid) { return archNodes.filter(n => n.parentId === pid); }
+    function archGetRoots() { return archNodes.filter(n => !n.parentId); }
+    function archGetAbsRect(node) {
+        let ax = node.position.x, ay = node.position.y, cur = node;
+        while (cur.parentId) {
+            const p = archGetNode(cur.parentId);
+            if (!p) break;
+            ax += p.position.x; ay += p.position.y; cur = p;
+        }
+        return { x:ax, y:ay, w:node.position.width, h:node.position.height };
+    }
+    function getLvlStyle(lv) { return LEVEL_STYLES[Math.min(lv, LEVEL_STYLES.length-1)]; }
+    function getConnStyle(link) {
+        const s = archNodes.find(n => n.id === link.source);
+        const t = archNodes.find(n => n.id === link.target);
+        if (!s || !t) return LEVEL_STYLES[0];
+        const lv = Math.min(archGetLevel(s.id), archGetLevel(t.id));
+        return LEVEL_STYLES[Math.min(lv, LEVEL_STYLES.length-1)];
+    }
+    function lightenFill(hex) {
+        const m = { '#f0f4ff':'#dbeafe','#fffbeb':'#fef3c7','#f0fdf4':'#dcfce7','#fdf2f8':'#fce7f3','#f5f3ff':'#ede9fe' };
+        return m[hex] || hex;
+    }
+    function getEdgePoint(rect, tx, ty) {
+        const cx = rect.x + rect.w/2, cy = rect.y + rect.h/2;
+        const dx = tx - cx, dy = ty - cy;
+        const hw = rect.w/2, hh = rect.h/2;
+        if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) return { x:cx, y:cy };
+        let scale = Infinity;
+        if (Math.abs(dx) > 0.001) {
+            for (const s of [hw/dx, -hw/dx]) {
+                if (s > 0.001) { const y = cy + dy*s; if (y >= rect.y-0.1 && y <= rect.y+rect.h+0.1) scale = Math.min(scale, s); }
             }
-            const result = await callModelAction('/start_model', '启动模型');
-            if (result.success) {
-                updateModelUI(true);
-                alert("✅ 模型加载成功！现在可以进行目标检测");
+        }
+        if (Math.abs(dy) > 0.001) {
+            for (const s of [hh/dy, -hh/dy]) {
+                if (s > 0.001) { const x = cx + dx*s; if (x >= rect.x-0.1 && x <= rect.x+rect.w+0.1) scale = Math.min(scale, s); }
+            }
+        }
+        if (scale === Infinity) scale = 0;
+        return { x: cx + dx*scale, y: cy + dy*scale };
+    }
+
+    function archUpdateViewBox() {
+        const w = archContainer.clientWidth;
+        const h = archContainer.clientHeight;
+        archSvg.setAttribute('viewBox', `${archPanX} ${archPanY} ${w/archZoom} ${h/archZoom}`);
+        document.getElementById('archZoomLabel').textContent = Math.round(archZoom*100) + '%';
+    }
+
+    function archZoomTo(newZoom, cx, cy) {
+        if (cx !== undefined && cy !== undefined) {
+            const pt = archSvg.createSVGPoint(); pt.x = cx; pt.y = cy;
+            const world = pt.matrixTransform(archSvg.getScreenCTM().inverse());
+            const old = archZoom;
+            archZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom));
+            archPanX = world.x - (world.x - archPanX)*(old/archZoom);
+            archPanY = world.y - (world.y - archPanY)*(old/archZoom);
+        } else {
+            archZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom));
+        }
+        archUpdateViewBox();
+    }
+
+    function renderArchitecture() {
+        if (!archNodes.length) return;
+        archSvg.innerHTML = '';
+        archUpdateViewBox();
+
+        const bgLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const connLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const fgLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        archSvg.appendChild(bgLayer);
+        archSvg.appendChild(connLayer);
+        archSvg.appendChild(fgLayer);
+
+        // 扁平化节点
+        const flat = [];
+        function collect(node, pax, pay) {
+            const ax = pax !== undefined ? pax + node.position.x : node.position.x;
+            const ay = pay !== undefined ? pay + node.position.y : node.position.y;
+            flat.push({ node, absX:ax, absY:ay, level:archGetLevel(node.id) });
+            archGetChildren(node.id).forEach(c => collect(c, ax, ay));
+        }
+        archGetRoots().forEach(r => collect(r, undefined, undefined));
+
+        // 背景层
+        flat.forEach(({ node, absX, absY, level }) => {
+            const { width:w, height:h } = node.position;
+            const s = getLvlStyle(level);
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', absX); rect.setAttribute('y', absY);
+            rect.setAttribute('width', w); rect.setAttribute('height', h);
+            rect.setAttribute('rx', s.rx);
+            rect.setAttribute('fill', s.fill);
+            rect.setAttribute('stroke', s.stroke);
+            rect.setAttribute('stroke-width', s.sw);
+            rect.style.pointerEvents = 'none';
+            bgLayer.appendChild(rect);
+        });
+
+        // 连接层
+        archLinks.forEach(link => {
+            const sn = archNodes.find(n => n.id === link.source);
+            const tn = archNodes.find(n => n.id === link.target);
+            if (!sn || !tn) return;
+            const sa = archGetAbsRect(sn), ta = archGetAbsRect(tn);
+            const st = getConnStyle(link);
+            const tcx = ta.x + ta.w/2, tcy = ta.y + ta.h/2;
+            const scx = sa.x + sa.w/2, scy = sa.y + sa.h/2;
+            const sp = getEdgePoint(sa, tcx, tcy);
+            const tp = getEdgePoint(ta, scx, scy);
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', sp.x); line.setAttribute('y1', sp.y);
+            line.setAttribute('x2', tp.x); line.setAttribute('y2', tp.y);
+            line.setAttribute('stroke', st.conn);
+            line.setAttribute('stroke-width', st.sw * 0.65);
+            line.style.pointerEvents = 'none';
+            connLayer.appendChild(line);
+        });
+
+        // 前景层（文本 + repeat）
+        flat.forEach(({ node, absX, absY, level }) => {
+            const { width:w, height:h } = node.position;
+            const s = getLvlStyle(level);
+            const nameStr = node.name || node.id;
+            const orient = node.orientation || 'horizontal';
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('fill', s.text);
+            text.setAttribute('font-weight', s.bold ? 'bold' : 'normal');
+            text.style.pointerEvents = 'none';
+
+            let fs;
+            if (orient === 'vertical') {
+                fs = Math.max(7, Math.min(12, w/5, (h-6)/Math.max(nameStr.length,1)*1.8));
+                text.setAttribute('font-size', fs+'px');
+                text.setAttribute('x', absX + w/2);
+                text.setAttribute('y', absY + h/2);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'central');
+                text.textContent = nameStr;
+                const tg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                tg.setAttribute('transform', `rotate(-90, ${absX + w/2}, ${absY + h/2})`);
+                tg.appendChild(text);
+                fgLayer.appendChild(tg);
             } else {
-                updateModelUI(false);
-            }
-        }
-
-        // 停止模型（释放显存）
-        async function stopModel() {
-            if (!isModelReady) {
-                alert("模型尚未加载，无需释放");
-                return;
-            }
-            const result = await callModelAction('/stop_model', '释放模型');
-            if (result.success) {
-                updateModelUI(false);
-                // 清除可能残留的检测结果显示
-                clearResultImage();
-                alert("模型已从内存/显存中释放");
-            } else {
-                // 保持原状态，但可能后端失败
-                console.warn("释放模型失败");
-            }
-        }
-
-        // 图片检测核心逻辑
-        async function runDetection() {
-            if (!isModelReady) {
-                alert("请先点击「启动模型」加载 AI 模型");
-                return;
-            }
-            if (!currentFile) {
-                alert("请先选择一张图片");
-                return;
+                fs = Math.max(7, Math.min(12, h/5, (w-6)/Math.max(nameStr.length,1)*1.8));
+                text.setAttribute('x', absX + w/2);
+                text.setAttribute('y', absY + fs + 2);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'hanging');
+                text.setAttribute('font-size', fs+'px');
+                text.textContent = nameStr;
+                fgLayer.appendChild(text);
             }
 
-            const formData = new FormData();
-            formData.append('image', currentFile);
-
-            showLoading(true, "目标检测推理中...");
-            runBtn.disabled = true;  // 防止重复点击
-
-            try {
-                const response = await fetch('http://localhost:8000/process', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    let errorDetail = `后端错误 (${response.status})`;
-                    try {
-                        const errText = await response.text();
-                        if (errText) errorDetail += `: ${errText.substring(0, 150)}`;
-                    } catch(e) {}
-                    throw new Error(errorDetail);
-                }
-
-                const blob = await response.blob();
-                if (!blob.type.startsWith('image/')) {
-                    throw new Error('后端返回非图片数据，请确认 process 接口返回 png');
-                }
-                displayResultImage(blob);
-            } catch (error) {
-                console.error('检测失败:', error);
-                alert(`目标检测失败: ${error.message}\n请确保后端模型正常且已启动。`);
-                clearResultImage();
-            } finally {
-                showLoading(false);
-                // 恢复按钮状态（模型依然ready, 且有文件）
-                if (isModelReady && currentFile) {
-                    runBtn.disabled = false;
+            const rv = node.repeat || 1;
+            if (rv > 1) {
+                const rf = Math.max(6, Math.min(fs*0.8, h/8, w/14));
+                const rt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                rt.setAttribute('fill', '#ef4444');
+                rt.setAttribute('font-size', rf+'px');
+                rt.setAttribute('font-weight', 'bold');
+                rt.style.pointerEvents = 'none';
+                if (orient === 'vertical') {
+                    rt.setAttribute('x', absX + w - 2);
+                    rt.setAttribute('y', absY + h - 2);
+                    rt.setAttribute('text-anchor', 'end');
                 } else {
-                    runBtn.disabled = true;
+                    rt.setAttribute('x', absX + w - 3);
+                    rt.setAttribute('y', absY + rf + 2);
+                    rt.setAttribute('text-anchor', 'end');
+                    rt.setAttribute('dominant-baseline', 'hanging');
                 }
+                rt.textContent = '×' + rv;
+                fgLayer.appendChild(rt);
             }
+        });
+    }
+
+    async function loadArchModel(filename) {
+        try {
+            const resp = await fetch('resource/net/' + filename);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            archNodes = data.node || [];
+            archLinks = data.link || [];
+            // 自动适配缩放与居中
+            if (archNodes.length) {
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                archNodes.forEach(n => {
+                    const r = archGetAbsRect(n);
+                    minX = Math.min(minX, r.x); minY = Math.min(minY, r.y);
+                    maxX = Math.max(maxX, r.x + r.w); maxY = Math.max(maxY, r.y + r.h);
+                });
+                const cw = archContainer.clientWidth || 900;
+                const ch = archContainer.clientHeight || 420;
+                const dw = maxX - minX + 60, dh = maxY - minY + 60;
+                archZoom = Math.max(0.2, Math.min(1.5, Math.min(cw/dw, ch/dh)));
+                archPanX = minX - 30 - (cw/archZoom - dw)/2;
+                archPanY = minY - 30 - (ch/archZoom - dh)/2;
+            }
+            renderArchitecture();
+            archLoaded = true;
+        } catch(err) {
+            console.error('加载架构失败:', err);
+            archSvg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#94a3b8" font-size="14">⚠️ 架构图加载失败: ' + err.message + '</text>';
         }
+    }
 
-        // 绑定事件
-        fileInput.addEventListener('change', (event) => {
-            if (event.target.files && event.target.files.length > 0) {
-                handleFileSelected(event.target.files[0]);
+    // 缩放控件
+    document.getElementById('archZoomInBtn').addEventListener('click', () => {
+        const r = archContainer.getBoundingClientRect();
+        archZoomTo(archZoom + ZOOM_STEP, r.left + r.width/2, r.top + r.height/2);
+    });
+    document.getElementById('archZoomOutBtn').addEventListener('click', () => {
+        const r = archContainer.getBoundingClientRect();
+        archZoomTo(archZoom - ZOOM_STEP, r.left + r.width/2, r.top + r.height/2);
+    });
+    document.getElementById('archZoomResetBtn').addEventListener('click', () => {
+        archZoom = 0.55; archPanX = 0; archPanY = 0;
+        if (archLoaded) loadArchModel(document.getElementById('archModelSelect').value);
+        else archUpdateViewBox();
+    });
+
+    // 画布拖拽
+    let archDragging = false, archDragStart = { x:0, y:0, px:0, py:0 };
+    archSvg.addEventListener('mousedown', e => {
+        archDragging = true;
+        archDragStart = { x: e.clientX, y: e.clientY, px: archPanX, py: archPanY };
+        archSvg.style.cursor = 'grabbing';
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => {
+        if (!archDragging) return;
+        archPanX = archDragStart.px - (e.clientX - archDragStart.x)/archZoom;
+        archPanY = archDragStart.py - (e.clientY - archDragStart.y)/archZoom;
+        archUpdateViewBox();
+    });
+    window.addEventListener('mouseup', () => {
+        archDragging = false;
+        archSvg.style.cursor = 'grab';
+    });
+    archContainer.addEventListener('wheel', e => {
+        e.preventDefault();
+        archZoomTo(archZoom + (-Math.sign(e.deltaY))*ZOOM_STEP, e.clientX, e.clientY);
+    }, { passive: false });
+
+    // 模型切换
+    document.getElementById('archModelSelect').addEventListener('change', function() {
+        loadArchModel(this.value);
+    });
+
+    // 初始加载: 在页面首次显示 about 页时加载
+    const origSwitchPage = switchPage;
+    // 懒加载：首次切换到 about 页时加载架构
+    const aboutObserver = new MutationObserver(() => {
+        if (pages.about.classList.contains('active-page') && !archLoaded) {
+            loadArchModel(document.getElementById('archModelSelect').value);
+        }
+    });
+    Object.values(pages).forEach(p => {
+        if (p) aboutObserver.observe(p, { attributes: true, attributeFilter: ['class'] });
+    });
+
+    // 初次加载时如果 about 页是活跃的（不太可能但做保护）
+    if (pages.about.classList.contains('active-page')) {
+        loadArchModel(document.getElementById('archModelSelect').value);
+    }
+
+    // ══════════════════════════════════════════════════
+    // 实验数据加载（实时读取 JSON / 图片 / XLSX）
+    // ══════════════════════════════════════════════════
+    let exprDataLoaded = false;
+
+    // 参数名中文映射
+    const PARAM_LABELS = {
+        'time': '训练耗时', 'epoch': '训练轮次', 'batch_size': '批次大小',
+        'dataset': '数据集', 'backbone': '主干网络', 'lr0': '初始学习率', 'lrf': '最终学习率因子'
+    };
+
+    async function loadExperimentData() {
+        if (exprDataLoaded) return;
+        exprDataLoaded = true;
+        // 并行加载三个数据源
+        await Promise.all([
+            loadExprParams(),
+            loadExprChart(),
+            loadExprCompare()
+        ]);
+    }
+
+    // 1) 加载实验参数 JSON
+    async function loadExprParams() {
+        const container = document.getElementById('exprParamsContainer');
+        try {
+            const resp = await fetch('resource/data/expr_data.json');
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            let html = '<table class="param-table"><tbody>';
+            for (const [key, val] of Object.entries(data)) {
+                const label = PARAM_LABELS[key] || key;
+                const displayVal = (typeof val === 'number' && val < 1 && key.startsWith('lr'))
+                    ? val.toFixed(4) : String(val);
+                html += `<tr><td class="pkey">${label}</td><td class="pval">${displayVal}</td></tr>`;
             }
-            fileInput.value = '';
-        });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } catch(err) {
+            container.innerHTML = '<div class="data-loading" style="color:#ef4444;">⚠️ 参数加载失败: ' + err.message + '</div>';
+        }
+    }
 
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.style.borderColor = '#3b82f6';
-            uploadZone.style.backgroundColor = '#f0f7ff';
-        });
-        uploadZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            uploadZone.style.borderColor = '#cbd5e1';
-            uploadZone.style.backgroundColor = '#fefefe';
-        });
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.style.borderColor = '#cbd5e1';
-            uploadZone.style.backgroundColor = '#fefefe';
-            const files = e.dataTransfer.files;
-            if (files && files.length > 0) handleFileSelected(files[0]);
-        });
-        uploadZone.addEventListener('click', () => openFileDialog());
+    // 2) 加载训练过程图
+    async function loadExprChart() {
+        const container = document.getElementById('exprChartContainer');
+        try {
+            // 预加载检查图片是否可访问
+            const resp = await fetch('resource/image/expr_results.png', { method: 'HEAD' });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const img = document.createElement('img');
+            img.src = 'resource/image/expr_results.png';
+            img.alt = '训练过程记录';
+            img.title = '点击放大';
+            img.onload = () => {
+                container.innerHTML = '';
+                container.appendChild(img);
+            };
+            img.onerror = () => {
+                throw new Error('图片加载失败');
+            };
+            // 点击放大（灯箱效果）
+            img.addEventListener('click', () => {
+                const lb = document.createElement('div');
+                lb.className = 'img-lightbox';
+                const lbImg = document.createElement('img');
+                lbImg.src = img.src;
+                lbImg.alt = '训练过程';
+                lb.appendChild(lbImg);
+                lb.addEventListener('click', () => lb.remove());
+                document.body.appendChild(lb);
+            });
+            container.innerHTML = '';
+            container.appendChild(img);
+        } catch(err) {
+            container.innerHTML = '<div class="data-loading" style="color:#ef4444;">⚠️ 图表加载失败: ' + err.message + '</div>';
+        }
+    }
 
-        startModelBtn.addEventListener('click', startModel);
-        stopModelBtn.addEventListener('click', stopModel);
-        runBtn.addEventListener('click', runDetection);
+    // 3) 加载 XLSX 模型对比表
+    async function loadExprCompare() {
+        const container = document.getElementById('exprCompareContainer');
+        try {
+            const resp = await fetch('resource/data/result_show.xlsx');
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const arrayBuffer = await resp.arrayBuffer();
+            const wb = XLSX.read(arrayBuffer, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            if (!rows.length) throw new Error('XLSX 为空');
 
-        // 初始化: 同步后端模型状态 + 设置UI
-        fetchModelStatus().then(() => {
-            // 若后端模型未加载，按钮禁用相关处理已在 updateModelUI 完成
-            if (!isModelReady) {
-                runBtn.disabled = true;
-            }
-            updateButtonState();
-        });
+            // 表头（COCO 标准指标名）
+            const headers = [
+                '模型名称', '参数量', 'GFLOPs',
+                'mAP@0.5', 'mAP@0.5:0.95', 'mAP@0.75',
+                'mAP@0.5:0.95 (小目标)', 'mAP@0.5 (中等目标)', 'mAP@0.5 (大目标)'
+            ];
 
-        // 额外清理
-        window.addEventListener('beforeunload', () => {
-            if (resultImg.src && resultImg.src.startsWith('blob:')) {
-                URL.revokeObjectURL(resultImg.src);
-            }
-        });
+            // 找出每列的最大值（数值列），用于高亮最优
+            const numCols = [];
+            for (let c = 3; c < headers.length; c++) numCols.push(c);
 
-        // 初始隐藏预览区
-        previewSection.style.display = 'none';
-        clearResultImage();
-    })();
+            let html = '<div class="compare-table-wrap"><table class="compare-table">';
+            // 表头
+            html += '<thead><tr>';
+            headers.forEach(h => { html += `<th>${h}</th>`; });
+            html += '</tr></thead><tbody>';
+
+            // 数据行
+            rows.forEach((row, ri) => {
+                html += '<tr>';
+                row.forEach((cell, ci) => {
+                    const val = (cell !== undefined && cell !== null) ? String(cell) : '';
+                    let cls = '';
+                    if (ci === 0) cls = 'model-name';
+                    html += `<td class="${cls}">${val}</td>`;
+                });
+                // 补齐列数
+                for (let c = row.length; c < headers.length; c++) {
+                    html += '<td></td>';
+                }
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        } catch(err) {
+            container.innerHTML = '<div class="data-loading" style="color:#ef4444;">⚠️ 对比数据加载失败: ' + err.message + '<br><small>请确保 resource/data/result_show.xlsx 可访问</small></div>';
+        }
+    }
+
+    // 如果 expr 页初始就是活跃的（例如 URL hash 定位），也触发加载
+    if (pages.expr && pages.expr.classList.contains('active-page')) {
+        setTimeout(loadExperimentData, 150);
+    }
+})();
 </script>
 </body>
 </html>

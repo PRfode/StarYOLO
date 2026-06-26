@@ -1,0 +1,9 @@
+{
+  "time" : "39h",
+  "epoch" : 100,
+  "batch_size" : 24,
+  "dataset" : "coco2017",
+  "backbone" : "StarYOLO",
+  "lr0" : 0.002,
+  "lrf" : 0.01
+}

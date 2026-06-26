@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import Response, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from io import BytesIO
 from PIL import Image, ImageEnhance, ImageFilter
 import uvicorn
@@ -165,6 +166,9 @@ async def process_test(image: UploadFile = File(...)):  # 修改：参数名改�
     except Exception as e:
         print(f"处理错误: {str(e)}")  # 服务端日志记录
         raise HTTPException(status_code=500, detail=f"图片处理失败: {str(e)}")
+
+# 挂载静态资源目录（必须在所有 API 路由之后）
+app.mount("/resource", StaticFiles(directory="backend/resource"), name="resource")
 
 if __name__ == "__main__":
     args = arg_parser.parse_args()
