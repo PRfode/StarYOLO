@@ -147,7 +147,7 @@
         /* ── 架构可视化画布 ── */
         .arch-canvas-area {
             background: #fefefe; position: relative; overflow: hidden;
-            min-height: 420px; height: 460px; border-radius: 1.2rem;
+            min-height: 520px; height: 560px; border-radius: 1.2rem;
             background-image: linear-gradient(#e2e8f0 1px, transparent 1px),
                               linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
             background-size: 20px 20px; border: 1px solid #e2e8f0; margin: 0.8rem 0;
@@ -286,7 +286,7 @@
             .header h1 { font-size: 1.2rem; }
             .content { padding: 1rem; }
             .nav-tab { padding: 8px 12px; font-size: 0.75rem; }
-            .arch-canvas-area { height: 320px; min-height: 300px; }
+            .arch-canvas-area { height: 400px; min-height: 380px; }
         }
         .markdown-export {
             max-width: 960px;
@@ -1047,17 +1047,17 @@ model.train(**resume_args)    # resume_args 中无 resume 字段
     const archSvg = document.getElementById('archSvgCanvas');
     const archContainer = document.getElementById('archCanvasContainer');
     let archNodes = [], archLinks = [];
-    let archZoom = 0.55, archPanX = 0, archPanY = 0;
+    let archZoom = 0.85, archPanX = 0, archPanY = 0;
     const ZOOM_MIN = 0.15, ZOOM_MAX = 4.0, ZOOM_STEP = 0.08;
     let archLoaded = false;
 
     // 层级配色
     const LEVEL_STYLES = [
-        { fill:'#f0f4ff', stroke:'#3b82f6', text:'#1e293b', conn:'#93c5fd', rx:12, sw:2.5, bold:true },
-        { fill:'#fffbeb', stroke:'#d97706', text:'#78350f', conn:'#fcd34d', rx:10, sw:2.0, bold:false },
-        { fill:'#f0fdf4', stroke:'#16a34a', text:'#14532d', conn:'#86efac', rx:8,  sw:1.8, bold:false },
-        { fill:'#fdf2f8', stroke:'#db2777', text:'#831843', conn:'#f9a8d4', rx:7,  sw:1.5, bold:false },
-        { fill:'#f5f3ff', stroke:'#7c3aed', text:'#3b0764', conn:'#c4b5fd', rx:6,  sw:1.5, bold:false },
+        { fill:'#f0f4ff', stroke:'#3b82f6', text:'#1e293b', conn:'#93c5fd', rx:16, sw:3.5, bold:true },
+        { fill:'#fffbeb', stroke:'#d97706', text:'#78350f', conn:'#fcd34d', rx:14, sw:3.0, bold:true },
+        { fill:'#f0fdf4', stroke:'#16a34a', text:'#14532d', conn:'#86efac', rx:12, sw:2.8, bold:true },
+        { fill:'#fdf2f8', stroke:'#db2777', text:'#831843', conn:'#f9a8d4', rx:10, sw:2.5, bold:true },
+        { fill:'#f5f3ff', stroke:'#7c3aed', text:'#3b0764', conn:'#c4b5fd', rx:9,  sw:2.5, bold:true },
     ];
 
     function archGetNode(id) { return archNodes.find(n => n.id === id); }
@@ -1168,7 +1168,59 @@ model.train(**resume_args)    # resume_args 中无 resume 字段
         });
 
         // 连接层
+        // Phase 1: 收集 bottom-exit 连线，统一计算路由布局
+        const exitLinks = [];
+        const rv = 12; // 圆角半径
         archLinks.forEach(link => {
+            if (link.router !== 'bottom-exit') return;
+            const sn = archNodes.find(n => n.id === link.source);
+            const tn = archNodes.find(n => n.id === link.target);
+            if (!sn || !tn) return;
+            const sa = archGetAbsRect(sn), ta = archGetAbsRect(tn);
+            exitLinks.push({
+                sx: sa.x + sa.w / 2, sy: sa.y + sa.h,
+                ex: ta.x, ey: ta.y + ta.h / 2,
+                st: getConnStyle(link)
+            });
+        });
+
+        if (exitLinks.length > 0) {
+            exitLinks.sort((a, b) => a.sx - b.sx); // 左→右排列
+            const maxSy = Math.max(...exitLinks.map(l => l.sy));
+            const rightmostSx = exitLinks[exitLinks.length - 1].sx;
+            const minEx = Math.min(...exitLinks.map(l => l.ex));
+
+            exitLinks.forEach((l, i) => {
+                // 每条线独立基线 Y，垂直错开避免重叠
+                const baselineY = maxSy + 80 + i * 20;
+                // 竖直线路在 backbone 右侧等距分布
+                const riserX = Math.min(
+                    rightmostSx + 100 + i * 30,
+                    l.ex - rv - 5
+                );
+                // 垂直向下 → 水平向右 → 垂直向上 → 水平向右
+                const d =
+                    `M ${l.sx},${l.sy} ` +
+                    `L ${l.sx},${baselineY - rv} ` +
+                    `Q ${l.sx},${baselineY} ${l.sx + rv},${baselineY} ` +
+                    `L ${riserX - rv},${baselineY} ` +
+                    `Q ${riserX},${baselineY} ${riserX},${baselineY - rv} ` +
+                    `L ${riserX},${l.ey + rv} ` +
+                    `Q ${riserX},${l.ey} ${riserX + rv},${l.ey} ` +
+                    `L ${l.ex},${l.ey}`;
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', d);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', l.st.conn);
+                path.setAttribute('stroke-width', l.st.sw * 0.85);
+                path.style.pointerEvents = 'none';
+                connLayer.appendChild(path);
+            });
+        }
+
+        // Phase 2: 其他连线画直线
+        archLinks.forEach(link => {
+            if (link.router === 'bottom-exit') return;
             const sn = archNodes.find(n => n.id === link.source);
             const tn = archNodes.find(n => n.id === link.target);
             if (!sn || !tn) return;
@@ -1182,7 +1234,7 @@ model.train(**resume_args)    # resume_args 中无 resume 字段
             line.setAttribute('x1', sp.x); line.setAttribute('y1', sp.y);
             line.setAttribute('x2', tp.x); line.setAttribute('y2', tp.y);
             line.setAttribute('stroke', st.conn);
-            line.setAttribute('stroke-width', st.sw * 0.65);
+            line.setAttribute('stroke-width', st.sw * 0.85);
             line.style.pointerEvents = 'none';
             connLayer.appendChild(line);
         });
@@ -1200,7 +1252,7 @@ model.train(**resume_args)    # resume_args 中无 resume 字段
 
             let fs;
             if (orient === 'vertical') {
-                fs = Math.max(7, Math.min(12, w/5, (h-6)/Math.max(nameStr.length,1)*1.8));
+                fs = Math.max(10, Math.min(26, w/3.5, (h-8)/Math.max(nameStr.length,1)*2.2));
                 text.setAttribute('font-size', fs+'px');
                 text.setAttribute('x', absX + w/2);
                 text.setAttribute('y', absY + h/2);
@@ -1212,9 +1264,9 @@ model.train(**resume_args)    # resume_args 中无 resume 字段
                 tg.appendChild(text);
                 fgLayer.appendChild(tg);
             } else {
-                fs = Math.max(7, Math.min(12, h/5, (w-6)/Math.max(nameStr.length,1)*1.8));
+                fs = Math.max(10, Math.min(26, h/3.5, (w-8)/Math.max(nameStr.length,1)*2.2));
                 text.setAttribute('x', absX + w/2);
-                text.setAttribute('y', absY + fs + 2);
+                text.setAttribute('y', absY + 4);
                 text.setAttribute('text-anchor', 'middle');
                 text.setAttribute('dominant-baseline', 'hanging');
                 text.setAttribute('font-size', fs+'px');
@@ -1224,9 +1276,9 @@ model.train(**resume_args)    # resume_args 中无 resume 字段
 
             const rv = node.repeat || 1;
             if (rv > 1) {
-                const rf = Math.max(6, Math.min(fs*0.8, h/8, w/14));
+                const rf = Math.max(16, Math.min(fs*1.3, h/3.5, w/5.5));
                 const rt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                rt.setAttribute('fill', '#ef4444');
+                rt.setAttribute('fill', '#dc2626');
                 rt.setAttribute('font-size', rf+'px');
                 rt.setAttribute('font-weight', 'bold');
                 rt.style.pointerEvents = 'none';
@@ -1263,10 +1315,10 @@ model.train(**resume_args)    # resume_args 中无 resume 字段
                 });
                 const cw = archContainer.clientWidth || 900;
                 const ch = archContainer.clientHeight || 420;
-                const dw = maxX - minX + 60, dh = maxY - minY + 60;
+                const dw = maxX - minX + 20, dh = maxY - minY + 20;
                 archZoom = Math.max(0.2, Math.min(1.5, Math.min(cw/dw, ch/dh)));
-                archPanX = minX - 30 - (cw/archZoom - dw)/2;
-                archPanY = minY - 30 - (ch/archZoom - dh)/2;
+                archPanX = minX - 10 - (cw/archZoom - dw)/2;
+                archPanY = minY - 10 - (ch/archZoom - dh)/2;
             }
             renderArchitecture();
             archLoaded = true;

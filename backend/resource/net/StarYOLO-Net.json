@@ -26,7 +26,7 @@
       "orientation": "vertical",
       "position": {
         "x": 19.105361938476562,
-        "y": 93.03945922851562,
+        "y": 76.5,
         "width": 52,
         "height": 166
       },
@@ -44,7 +44,7 @@
       "orientation": "vertical",
       "position": {
         "x": 92,
-        "y": 95,
+        "y": 77,
         "width": 62,
         "height": 165
       },
@@ -80,7 +80,7 @@
       "orientation": "vertical",
       "position": {
         "x": 19.358054399490356,
-        "y": 83.0787353515625,
+        "y": 70.81,
         "width": 57.4168701171875,
         "height": 176.385498046875
       },
@@ -98,7 +98,7 @@
       "orientation": "vertical",
       "position": {
         "x": 104,
-        "y": 85,
+        "y": 71,
         "width": 57,
         "height": 176
       },
@@ -152,7 +152,7 @@
       "orientation": "vertical",
       "position": {
         "x": 116,
-        "y": 81,
+        "y": 72.69,
         "width": 57,
         "height": 176
       },
@@ -188,7 +188,7 @@
       "orientation": "vertical",
       "position": {
         "x": 22.66845703125,
-        "y": 81.66632080078125,
+        "y": 69.5,
         "width": 64,
         "height": 182
       },
@@ -206,7 +206,7 @@
       "orientation": "vertical",
       "position": {
         "x": 119,
-        "y": 80,
+        "y": 69,
         "width": 57,
         "height": 183
       },
@@ -224,7 +224,7 @@
       "orientation": "vertical",
       "position": {
         "x": 27.8887939453125,
-        "y": 79.44390869140625,
+        "y": 69.69,
         "width": 64,
         "height": 182
       },
@@ -1180,15 +1180,18 @@
     },
     {
       "source": "l4.odss",
-      "target": "sppf.sppf2"
+      "target": "sppf.sppf2",
+      "router": "bottom-exit"
     },
     {
       "source": "l3.odss",
-      "target": "sppf.sppf1"
+      "target": "sppf.sppf1",
+      "router": "bottom-exit"
     },
     {
       "source": "l2.odss",
-      "target": "sppf.sppf"
+      "target": "sppf.sppf",
+      "router": "bottom-exit"
     },
     {
       "source": "input",
