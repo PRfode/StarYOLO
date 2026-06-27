@@ -1,19 +1,19 @@
 """
-使用层映射表加载预训练权重，冻结已映射层，训练未映射层。
+使用层映射表加载预训练权重，所有层共同参与训练（无冻结机制）。
 支持 --resume 从已保存的训练目录恢复训练。
 
 映射文件位于 ./res/mapping/{pretrained}_{model}.json，格式:
   {"pretrained_layer_idx": "target_layer_idx", ...}
 
 只会加载映射文件中列出的层，未列出层随机初始化。
-已映射（加载了预训练权重）的层被冻结，未映射的层参与训练。
+所有层均参与训练（不同于 train_with_frozen.py 的冻结策略）。
 
 用法（正常训练）:
-  conda run -n yolov8 python script/train_with_frozen.py \
+  conda run -n yolov8 python script/train.py \
     --pt yolov8n --model yolov8nmod --dataset coco512
 
 用法（恢复训练）:
-  conda run -n yolov8 python script/train_with_frozen.py \
+  conda run -n yolov8 python script/train.py \
     --resume staryolon-100 --epochs 100 --lr 1e-4
 """
 import sys
@@ -68,7 +68,7 @@ def build_loaded_state_dict(src_sd, target_sd, mapping):
     return loaded, mismatches, not_founds
 
 def main():
-    parser = argparse.ArgumentParser(description="Train with layer mapping")
+    parser = argparse.ArgumentParser(description="Train with layer mapping (no freezing)")
     parser.add_argument("--pt", type=str, default="yolov8n", help="预训练模型名（正常训练时使用）")
     parser.add_argument("--model", type=str, default="yolov8nmod", help="目标模型名（正常训练时使用）")
     parser.add_argument("--dataset", type=str, default="coco512", help="数据集名")
@@ -89,15 +89,10 @@ def main():
                         help="每 N 个 epoch 保存一次权重")
     parser.add_argument("--resume", type=str, default="",
                         help="从已保存的训练文件夹路径（相对于 runs/train/）中继续训练")
-    
     parser.add_argument("--warmup_epochs", type=int, default=3, help="预热训练的 epoch 数")
-    
-    parser.add_argument("--resume_freeze", type=int, nargs='+', default=None, help="仅在resume模式可起作用的 freeze 层数的指定")
-    
-    parser.add_argument()
 
     args = parser.parse_args()
-    
+
     assert args.warmup_epochs <= args.epochs, "warmup_epochs must be less than epochs"
 
     device = args.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -124,8 +119,8 @@ def main():
         resume_args = yaml_load(args_path)
         print(f"  Loaded {len(resume_args)} saved args")
 
-        # 2. 删除恢复训练不用的键
-        for key in ('resume', 'model', 'save_dir', 'mode'):
+        # 2. 删除恢复训练不用的键 (包括freeze)
+        for key in ('resume', 'model', 'save_dir', 'mode', 'freeze'):
             resume_args.pop(key, None)
 
         # 3. 确保保存到原目录
@@ -156,8 +151,6 @@ def main():
             # lr 参数需要特殊处理
             elif key == 'lr':
                 override_args['lr0'] = cli_dict[key]
-            elif key == 'resume_freeze':
-                override_args['freeze'] = cli_dict[key]
             # 直接覆盖
             elif key in cli_dict:
                 override_args[key] = cli_dict[key]
@@ -192,7 +185,6 @@ def main():
         print(f"[Error] Mapping file not found: {mapping_path}")
         sys.exit(1)
     print(f"\nLoading mapping from {mapping_path} ...")
-    # 加载映射
     mapping = load_mapping(mapping_path)
     print(f"  {len(mapping)} entries:")
     for s, t in sorted(mapping.items()):
@@ -214,7 +206,7 @@ def main():
         sys.exit(1)
     print(f"\nLoading pretrained from {pretrained_path} ...")
     ckpt = torch.load(pretrained_path, map_location="cpu", weights_only=False)
-    src_sd = ckpt.get("model", ckpt) # ?
+    src_sd = ckpt.get("model", ckpt)
     if isinstance(src_sd, torch.nn.Module):
         src_sd = src_sd.state_dict()
 
@@ -236,32 +228,13 @@ def main():
     # 避免 model.train() 丢弃已加载的权重
     model.ckpt = {"epoch": 0}
 
-    # 4. 确定冻结策略：已映射层冻结，未映射层训练
-    mapped_tgt_idxs = set(mapping.values())
-    freeze_list = sorted(mapped_tgt_idxs)
-    trainable_idxs = [i for i in range(total_layers) if i not in mapped_tgt_idxs]
-
-    # 计算可训练参数量
-    learnable_params = sum(
-        p.numel() for n, p in model.model.named_parameters()
-        if not any(f"model.{i}." in n for i in freeze_list)
-    )
-
-    print(f"\n{'='*60}")
-    print(f"Freeze strategy: mapped layers frozen, unmapped layers trained")
-    print(f"  Frozen  layers ({len(freeze_list)}): {freeze_list}")
-    print(f"  Trainable layers ({len(trainable_idxs)}): {trainable_idxs}")
-    print(f"  Trainable params: {learnable_params:,} ({learnable_params/total_params*100:.2f}%)")
-    print(f"{'='*60}\n")
-
-    # 5. 开始训练
+    # 4. 开始训练（所有层共同参与训练，无冻结）
     model.train(
         data=data_yaml,
         epochs=args.epochs,
         batch=args.batch,
         imgsz=640,
         device=device,
-        freeze=freeze_list,
         optimizer="AdamW",
         lr0=args.lr,
         lrf=args.lrf,
@@ -275,7 +248,7 @@ def main():
         exist_ok=True,
         verbose=True,
         pretrained=False,
-        warmup_epochs=3,
+        warmup_epochs=args.warmup_epochs,
         warmup_momentum=0.8,
         warmup_bias_lr=0.1,
         cos_lr=args.cos_lr,
